@@ -1,0 +1,46 @@
+# ============================================================================
+# Kuraka framework — gitignore
+# ============================================================================
+# This repo holds the portable Kuraka system. It is NOT the backup of any
+# specific project's code/docs — it's the reusable framework that mounts
+# into any project via mount-kuraka.sh.
+
+# ---------------------------------------------------------------------------
+# Exclude mirrors of sie_v2 (synced to this vault but not part of framework).
+# Use /-prefixed paths so we only match the top-level dirs — NOT the same-named
+# subdirs inside kuraka-artifacts/ which ARE part of the framework.
+# ---------------------------------------------------------------------------
+/docs/
+/documentacion-backend/
+
+# ---------------------------------------------------------------------------
+# Exclude project-specific rules 01-15 (these are team conventions of sie_v2,
+# not universal Kuraka rules). Only 16-agent-backup and 17-kuraka-token-
+# optimizations are the personal meta-rules of the Kuraka system itself.
+# ---------------------------------------------------------------------------
+rules/01-*.md
+rules/02-*.md
+rules/03-*.md
+rules/04-*.md
+rules/05-*.md
+rules/06-*.md
+rules/07-*.md
+rules/08-*.md
+rules/09-*.md
+rules/10-*.md
+rules/11-*.md
+rules/12-*.md
+rules/13-*.md
+rules/14-*.md
+rules/15-*.md
+
+# ---------------------------------------------------------------------------
+# macOS / editors / caches
+# ---------------------------------------------------------------------------
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+__pycache__/
+.pytest_cache/
