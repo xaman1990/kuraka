@@ -212,7 +212,7 @@ y reiniciar Claude Code para que re-registre el subagente.
 
 ## Tooling del sistema Kuraka
 
-Scripts del vault (`~/Documents/Agentes/AgentesTrabajos/sie_integraciones/`)
+Scripts del vault (`~/Documents/Agentes/AgentesTrabajos/kuraka/`)
 que puedes llamar desde cualquier rama/repo:
 
 ### `mount-kuraka.sh`
@@ -221,9 +221,9 @@ Monta el sistema Kuraka personal en el repo actual (rsync desde vault,
 actualiza `.gitignore`).
 
 ```bash
-bash ~/Documents/Agentes/AgentesTrabajos/sie_integraciones/mount-kuraka.sh
+bash ~/Documents/Agentes/AgentesTrabajos/kuraka/mount-kuraka.sh
 # o con alias en ~/.zshrc:
-alias mount-kuraka='bash ~/Documents/Agentes/AgentesTrabajos/sie_integraciones/mount-kuraka.sh'
+alias mount-kuraka='bash ~/Documents/Agentes/AgentesTrabajos/kuraka/mount-kuraka.sh'
 ```
 
 ### `validate-kuraka.sh`
@@ -232,7 +232,7 @@ Valida frontmatter de agentes/skills y detecta referencias huérfanas. Corre
 antes de cada sesión nueva para confirmar que todo está consistente.
 
 ```bash
-bash ~/Documents/Agentes/AgentesTrabajos/sie_integraciones/validate-kuraka.sh
+bash ~/Documents/Agentes/AgentesTrabajos/kuraka/validate-kuraka.sh
 ```
 
 ### `kuraka-inspect.py`
@@ -241,7 +241,7 @@ Detector de stack para onboarding Brownfield. Escanea un repo y produce un
 JSON con backend/frontend/DB/testing/CI/containers detectados.
 
 ```bash
-python3 ~/Documents/Agentes/AgentesTrabajos/sie_integraciones/kuraka-inspect.py [dir]
+python3 ~/Documents/Agentes/AgentesTrabajos/kuraka/kuraka-inspect.py [dir]
 # JSON a stdout, resumen humano a stderr
 # Redirige a fichero si quieres persistir:
 python3 ~/.../kuraka-inspect.py > inspect-report.json
@@ -255,7 +255,7 @@ Lee todos los JSON de `docs/process/agent-telemetry/` y emite un dashboard
 Markdown agregado (per-cycle, per-agent, tokens/uso, flags over-budget).
 
 ```bash
-python3 ~/Documents/Agentes/AgentesTrabajos/sie_integraciones/aggregate-telemetry.py
+python3 ~/Documents/Agentes/AgentesTrabajos/kuraka/aggregate-telemetry.py
 # produce: docs/process/agent-telemetry/DASHBOARD.md
 ```
 

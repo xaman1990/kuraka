@@ -23,7 +23,7 @@ cat >> ~/.zshrc << 'EOF'
 # Uso: desde la raíz de cualquier proyecto, ejecutar: claude-sync
 # Convierte [[wikilinks]] de Obsidian a `backticks` para Claude Code
 claude-sync() {
-  local VAULT=/Users/xmn/Documents/Agentes/AgentesTrabajos/sie_integraciones
+  local VAULT=/Users/xmn/Documents/Agentes/AgentesTrabajos/kuraka
   mkdir -p .claude/agents/contexts .claude/skills .claude/commands .claude/rules scripts
   cp "$VAULT"/agents/*.md .claude/agents/ 2>/dev/null
   cp "$VAULT"/agents/contexts/*.md .claude/agents/contexts/ 2>/dev/null

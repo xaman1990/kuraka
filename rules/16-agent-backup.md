@@ -11,7 +11,7 @@ All agent definitions, skills, commands and project documentation must be
 mirrored to the central Obsidian vault:
 
 ```
-/Users/xmn/Documents/Agentes/AgentesTrabajos/sie_integraciones/
+/Users/xmn/Documents/Agentes/AgentesTrabajos/kuraka/
 ```
 
 This directory is the single source of truth shared across projects and is
@@ -21,11 +21,11 @@ also the backing store for the Obsidian graph view.
 
 | Source (project) | Backup |
 |-----------------|--------|
-| `sie_v2/.claude/agents/*.md` | `AgentesTrabajos/sie_integraciones/agents/` |
-| `sie_v2/.claude/skills/*.md` | `AgentesTrabajos/sie_integraciones/skills/` |
-| `sie_v2/.claude/commands/*.md` | `AgentesTrabajos/sie_integraciones/commands/` |
-| `sie_v2/docs/**` (recursive) | `AgentesTrabajos/sie_integraciones/docs/` |
-| `sie_v2/backend/documentacion/**` (recursive) | `AgentesTrabajos/sie_integraciones/documentacion-backend/` |
+| `sie_v2/.claude/agents/*.md` | `AgentesTrabajos/kuraka/agents/` |
+| `sie_v2/.claude/skills/*.md` | `AgentesTrabajos/kuraka/skills/` |
+| `sie_v2/.claude/commands/*.md` | `AgentesTrabajos/kuraka/commands/` |
+| `sie_v2/docs/**` (recursive) | `AgentesTrabajos/kuraka/docs/` |
+| `sie_v2/backend/documentacion/**` (recursive) | `AgentesTrabajos/kuraka/documentacion-backend/` |
 
 The `docs/` and `documentacion-backend/` trees preserve the original folder
 hierarchy so wiki-links resolve in Obsidian. Only `.md`, `.yml`/`.yaml` and
@@ -50,13 +50,13 @@ defer) when:
 
 ```bash
 cp sie_v2/.claude/{agents,skills,commands}/changed_file.md \
-   /Users/xmn/Documents/Agentes/AgentesTrabajos/sie_integraciones/{agents,skills,commands}/
+   /Users/xmn/Documents/Agentes/AgentesTrabajos/kuraka/{agents,skills,commands}/
 ```
 
 ### Docs trees (use rsync with content filter + `--delete`)
 
 ```bash
-BACKUP=/Users/xmn/Documents/Agentes/AgentesTrabajos/sie_integraciones
+BACKUP=/Users/xmn/Documents/Agentes/AgentesTrabajos/kuraka
 
 rsync -a --delete \
   --include='*/' \

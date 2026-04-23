@@ -17,7 +17,7 @@
 
 set -euo pipefail
 
-VAULT="/Users/xmn/Documents/Agentes/AgentesTrabajos/sie_integraciones"
+VAULT="/Users/xmn/Documents/Agentes/AgentesTrabajos/kuraka"
 TARGET="${1:-$PWD}"
 
 # --- sanity checks ---

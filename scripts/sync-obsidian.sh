@@ -15,7 +15,7 @@
 set -euo pipefail
 
 CLAUDE_DIR="$(cd "$(dirname "$0")/../.claude" && pwd)"
-OBSIDIAN_DIR="/Users/xmn/Documents/Agentes/AgentesTrabajos/sie_integraciones"
+OBSIDIAN_DIR="/Users/xmn/Documents/Agentes/AgentesTrabajos/kuraka"
 
 # ---------------------------------------------------------------------------
 # Current agent and skill names (keep in sync with .claude/agents/ and .claude/skills/)

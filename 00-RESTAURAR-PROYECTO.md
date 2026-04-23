@@ -8,7 +8,7 @@
 ## ⚡ Comando de restauración (copiar y pegar)
 
 ```bash
-VAULT=/Users/xmn/Documents/Agentes/AgentesTrabajos/sie_integraciones && \
+VAULT=/Users/xmn/Documents/Agentes/AgentesTrabajos/kuraka && \
 mkdir -p .claude/agents/contexts .claude/skills .claude/commands .claude/rules scripts && \
 REVERT_WIKILINKS() { for dir in "$@"; do for file in "$dir"/*.md; do [ -f "$file" ] || continue; sed -i.bak 's/\[\[\([a-z][a-z0-9-]*\)\]\]/`\1`/g' "$file" && rm "${file}.bak"; done; done; } && \
 cp "$VAULT"/agents/*.md .claude/agents/ 2>/dev/null; \
@@ -72,7 +72,7 @@ ver `dotfiles/zshrc-alias.md` en este vault para la configuración del `.zshrc`.
 
 ## 🆘 Si el comando falla
 
-- Verifica que el path del vault existe: `ls /Users/xmn/Documents/Agentes/AgentesTrabajos/sie_integraciones/`
+- Verifica que el path del vault existe: `ls /Users/xmn/Documents/Agentes/AgentesTrabajos/kuraka/`
 - Verifica que estás en la raíz del proyecto: `ls` debería mostrar carpetas como `backend/`, `frontend/`, etc.
 - Si cambió el path del vault, edita la línea `VAULT=...` del comando
 - Si el script no queda ejecutable: `chmod +x scripts/sync-obsidian.sh`

@@ -7,7 +7,7 @@ description: "Migrate agents/skills/contexts/rules/commands + sync-obsidian.sh f
 ## Context
 
 My multi-agent system lives in two places:
-1. **Source of truth (central backup):** `/Users/xmn/Documents/Agentes/AgentesTrabajos/sie_integraciones/`
+1. **Source of truth (central backup):** `/Users/xmn/Documents/Agentes/AgentesTrabajos/kuraka/`
 2. **Working copy (per branch):** `{current working directory}/.claude/` and `{cwd}/scripts/`
 
 When I switch git branches, these files may be missing because I don't always
@@ -37,7 +37,7 @@ prevents losing local edits.
 | `rules/*.md` | `.claude/rules/` |
 | `scripts/sync-obsidian.sh` | `scripts/sync-obsidian.sh` (then `chmod +x`) |
 
-Vault root: `/Users/xmn/Documents/Agentes/AgentesTrabajos/sie_integraciones/`
+Vault root: `/Users/xmn/Documents/Agentes/AgentesTrabajos/kuraka/`
 
 ## Execution steps (in order)
 
@@ -130,7 +130,7 @@ Show me a final summary:
 ```
 ## Migration Report
 
-**Source:** /Users/xmn/Documents/Agentes/AgentesTrabajos/sie_integraciones/
+**Source:** /Users/xmn/Documents/Agentes/AgentesTrabajos/kuraka/
 **Destination:** {cwd}/
 
 ### Files copied (MISSING → created)
