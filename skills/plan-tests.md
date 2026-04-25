@@ -2,7 +2,7 @@
 name: plan-tests
 description: "Pre-implementation test planning. Produces a test plan from stories BEFORE code is written. Defines what to test, fixtures needed, mocks, edge cases, and testability constraints that the developer must respect."
 agent: "[[test-engineer]]"
-phase: "2.5 — see `kuraka`"
+phase: "2.5 — see [[kuraka]]"
 ---
 
 # Plan Tests (Pre-Implementation)

@@ -9,6 +9,7 @@ Read ONLY these rules before reviewing stories + test plan:
 5. `sie_v2/.claude/rules/06-project-structure.md` - Monorepo structure and file paths
 6. `sie_v2/.claude/rules/08-testing.md` - Testing patterns (to validate test plan)
 7. `sie_v2/.claude/rules/13-db-migrations.md` - Migration naming (only if schema changes exist)
+8. `sie_v2/.claude/rules/18-duplication-aware-refactor.md` - Detect duplicated logic across providers and PROPOSE extraction as SUGGESTION finding (do not block the review, but flag for a separate subtask).
 
 ## Conditional (only if touched by the REQ)
 

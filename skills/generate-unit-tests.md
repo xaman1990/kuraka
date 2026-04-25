@@ -2,7 +2,7 @@
 name: generate-unit-tests
 description: "Generate unit tests for services, repositories, and models. Uses pytest + AAA pattern, mocks dependencies, follows project naming conventions."
 agent: "[[test-engineer]]"
-phase: "6 — see `kuraka`"
+phase: "6 — see [[kuraka]]"
 ---
 
 # Generate Unit Tests

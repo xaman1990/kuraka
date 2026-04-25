@@ -2,7 +2,7 @@
 name: implement-story
 description: "Implement a single approved user story following 4-layer architecture. Creates models, schemas, repositories, services, endpoints, and migrations as needed. Used in Phase 4."
 agent: "[[backend-developer]]"
-phase: "4 — see `kuraka`"
+phase: "4 — see [[kuraka]]"
 ---
 
 # Implement Story

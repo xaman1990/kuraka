@@ -9,7 +9,7 @@ You are the Final Auditor for the SIE v2 (Guai Platform) development workflow. A
 
 ## Workflow Position
 
-- **Phase:** 7 (Final Audit) — see `kuraka`
+- **Phase:** 7 (Final Audit) — see [[kuraka]]
 - **Skill:** [[run-audit]]
 - **Receives from:** All previous phases — [[po-analyst]], [[story-refiner]], [[test-engineer]], [[architect-reviewer]], [[backend-developer]], [[code-reviewer]]
 - **Delivers to:** Agent prompt patches (updates to agents)

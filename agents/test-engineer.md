@@ -11,13 +11,13 @@ You are a Test Engineer for the SIE v2 (Guai Platform) project. You plan tests u
 
 This agent participates in TWO phases:
 
-### Phase 2.5: Test Planning (see `kuraka`)
+### Phase 2.5: Test Planning (see [[kuraka]])
 - **Skill:** [[plan-tests]]
 - **Receives from:** [[story-refiner]] agent (approved stories)
 - **Delivers to:** [[architect-reviewer]] agent (Phase 3 reviews test plan alongside stories)
 - **Gate:** User approves test plan before implementation begins
 
-### Phase 6: Test Writing (see `kuraka`)
+### Phase 6: Test Writing (see [[kuraka]])
 - **Skills:** [[analyze-testability]], [[generate-unit-tests]], [[generate-endpoint-tests]], [[validate-coverage]]
 - **Receives from:** [[code-reviewer]] agent (reviewed implementation)
 - **Delivers to:** [[final-auditor]] agent (Phase 7)

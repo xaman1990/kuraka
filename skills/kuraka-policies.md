@@ -247,7 +247,7 @@ python3 ~/Documents/Agentes/AgentesTrabajos/kuraka/kuraka-inspect.py [dir]
 python3 ~/.../kuraka-inspect.py > inspect-report.json
 ```
 
-El agente `amauta` lee este JSON como input principal en el modo Brownfield.
+El agente [[amauta]] lee este JSON como input principal en el modo Brownfield.
 
 ### `aggregate-telemetry.py`
 

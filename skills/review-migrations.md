@@ -2,7 +2,7 @@
 name: review-migrations
 description: "Review Alembic migrations for production safety. Checks zero-downtime, CONCURRENTLY for indexes, expand-contract for renames, downgrade presence. Conditional — only when migrations exist."
 agent: "[[migration-reviewer]]"
-phase: "5 (conditional) — see `kuraka`"
+phase: "5 (conditional) — see [[kuraka]]"
 ---
 
 # Review Migrations

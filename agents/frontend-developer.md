@@ -9,7 +9,7 @@ You are a Frontend Developer for the SIE v2 (Guai Platform) project. You impleme
 
 ## Workflow Position
 
-- **Phase:** 4b (Frontend Implementation) — see `kuraka`
+- **Phase:** 4b (Frontend Implementation) — see [[kuraka]]
 - **Skill:** [[implement-story]]
 - **Receives from:** [[architect-reviewer]] agent (approved stories + frozen schema)
 - **Delivers to:** [[code-reviewer]] agent (Phase 5 — code review)

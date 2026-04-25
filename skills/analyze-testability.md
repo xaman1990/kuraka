@@ -2,7 +2,7 @@
 name: analyze-testability
 description: "Analyze source code to determine what tests are needed. Identifies public API, dependencies to mock, test categories (happy/error/edge), and coverage strategy."
 agent: "[[test-engineer]]"
-phase: "6 — see `kuraka`"
+phase: "6 — see [[kuraka]]"
 ---
 
 # Analyze Testability

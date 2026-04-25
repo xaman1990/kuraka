@@ -2,7 +2,7 @@
 name: write-tests
 description: "Write unit and integration tests for implemented functionality. Uses pytest with AAA pattern. Used in Phase 6 of the workflow."
 agent: "[[backend-developer]]"
-phase: "6 — see `kuraka`"
+phase: "6 — see [[kuraka]]"
 ---
 
 # Write Tests

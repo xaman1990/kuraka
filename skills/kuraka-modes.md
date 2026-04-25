@@ -12,8 +12,8 @@ al inicio de un proyecto nuevo o al integrar Kuraka en un codebase preexistente.
 
 | Modo | Cuándo | Fases/agentes |
 |---|---|---|
-| **Bootstrap** (Greenfield) | Proyecto sin código todavía (solo una idea) | `inti` → `arki` → normal Kuraka |
-| **Brownfield** | Proyecto existente sin Kuraka todavía | `kuraka-inspect` → `amauta` → normal Kuraka |
+| **Bootstrap** (Greenfield) | Proyecto sin código todavía (solo una idea) | [[inti]] → [[arki]] → normal Kuraka |
+| **Brownfield** | Proyecto existente sin Kuraka todavía | `kuraka-inspect` → [[amauta]] → normal Kuraka |
 | **Normal** | Cambio en proyecto con Kuraka ya integrado | 8 fases (ver `kuraka.md`) |
 | **Reducido por riesgo** | Cambio estrecho de baja complejidad | 3–5 fases |
 | **Lite** | Cambio trivial (9 criterios estrictos) | 3 fases |
@@ -31,8 +31,8 @@ estructura de repo, no hay rules.
 
 | Phase | Agent | Skill | Output | Gate |
 |---|---|---|---|---|
-| B1 | `inti` | (interview-driven) | `docs/discovery/vision.md` + `docs/discovery/requirements.md` | Usuario aprueba discovery |
-| B2 | `arki` | (stack proposal + bootstrap) | `docs/arquitectura/` + `.claude/rules/` + `kipus/` + source skeletons + project root files | Usuario aprueba stack + scaffolding |
+| B1 | [[inti]] | (interview-driven) | `docs/discovery/vision.md` + `docs/discovery/requirements.md` | Usuario aprueba discovery |
+| B2 | [[arki]] | (stack proposal + bootstrap) | `docs/arquitectura/` + `.claude/rules/` + `kipus/` + source skeletons + project root files | Usuario aprueba stack + scaffolding |
 
 Tras B2, el proyecto está listo para el modo **Normal** con po-analyst como
 primera fase del primer REQ.
@@ -68,7 +68,7 @@ extrayéndolas del código real.
 | Phase | Tool/Agent | Output | Gate |
 |---|---|---|---|
 | W0 | `kuraka-inspect.py` (script, no agente) | `inspect-report.json` | Usuario revisa el reporte |
-| W1 | `amauta` | `.claude/rules/` + `docs/` skeleton + `kipus/` + convention matrix con findings dudosos marcados | Usuario aprueba las reglas generadas |
+| W1 | [[amauta]] | `.claude/rules/` + `docs/` skeleton + `kipus/` + convention matrix con findings dudosos marcados | Usuario aprueba las reglas generadas |
 
 Tras W1, el proyecto está listo para modo **Normal** en su próximo REQ.
 

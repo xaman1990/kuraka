@@ -2,7 +2,7 @@
 name: validate-coverage
 description: "Validate test coverage after generating tests. Runs ruff + pytest, identifies gaps, reports coverage metrics."
 agent: "[[test-engineer]]"
-phase: "6 — see `kuraka`"
+phase: "6 — see [[kuraka]]"
 ---
 
 # Validate Coverage

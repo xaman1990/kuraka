@@ -11,6 +11,7 @@ Read ONLY these rules before reviewing implemented code:
 7. `sie_v2/.claude/rules/06-project-structure.md` - Monorepo structure
 8. `sie_v2/.claude/rules/08-testing.md` - Testing patterns
 9. `sie_v2/.claude/rules/10-code-review.md` - 6D review framework
+10. `sie_v2/.claude/rules/18-duplication-aware-refactor.md` - Detect duplicated logic across providers/modules and report it as finding under the MAINTAINABILITY dimension of the 6D framework. Propose extraction as SUGGESTION with the standard format; do not demand it in-ticket.
 
 ## Conditional (only if the code touches that domain)
 

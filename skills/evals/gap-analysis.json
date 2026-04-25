@@ -1,0 +1,72 @@
+{
+  "skill_name": "gap-analysis",
+  "created_at": "2026-04-23",
+  "description": "Test cases for the gap-analysis skill. Each eval runs a realistic user prompt against an agent with access to gap-analysis loaded. Assertions left empty for iteration 1 — fill them after first run.",
+  "evals": [
+    {
+      "id": 1,
+      "name": "provider-migration-linea-directa-baseline",
+      "category": "happy-path-provider-migration",
+      "prompt": "Analiza el provider Linea Directa en v1 (sie_integraciones/backend/src/providers/lineadirecta/) y prodúceme el gap analysis contra la arquitectura v2 (sie_v2/backend/api/services/providers/). Contexto: ticket Jira DD-896. Scope: inbound sólo; outbound está fuera. Referencias a usar en destino: asitur y generali.",
+      "expected_output": "Document at sie_v2/docs/process/GAP-*-DD-896-linea-directa.md with Parts A/B/C/D complete. A.1: inventory of ~4 JS files. A.2: hybrid IMAP+REST OAuth2. A.4: >=10 hardcoded values with file:line. B.1/B.3: analysis of BaseEmailProvider + BaseAPIProvider and asitur+generali implementations. B.4: documents that 'caser/' referenced in ticket does not exist in v2. C.1: complete hardcode→destination mapping (contract_resolution_rules, .env, enums). C.4: >=5 risks. D.1/D.2/D.3: concrete recommendations per downstream phase.",
+      "baseline_reference": "sie_v2/docs/process/REQ-20260423-DD-897-898-analisis-migracion-linea-directa.md (499 LOC — pre-skill baseline)",
+      "files": [],
+      "assertions": []
+    },
+    {
+      "id": 2,
+      "name": "module-migration-tools-refactor",
+      "category": "happy-path-module-migration",
+      "prompt": "Necesito un gap analysis entre el módulo Tools actual en v1 (sie_integraciones/backend/src/tools/ o equivalente) y su versión destino en v2 (sie_v2/backend/api/endpoints/tools/ + servicios asociados). Contexto: ticket Jira DD-737 (Refactorizar Tools a FastAPI). Scope: toda la superficie del módulo Tools excepto baremos OCR (tiene ticket propio DD-864).",
+      "expected_output": "Document at sie_v2/docs/process/GAP-*-DD-737-tools-refactor.md. A.1: inventory of v1 tools routes/controllers/services. A.2: Express routing + middleware architecture. A.4: hardcoded values found. B.1: FastAPI base patterns (endpoint→service→repository). B.3: >=2 reference endpoints already in v2 (e.g., auth, system). B.4: notes any missing references. C.1: mapping table route→endpoint, controller→service, etc. C.2: flow mapping. C.4: >=5 risks including state management, session migration. D.1-D.3: phased migration plan.",
+      "files": [],
+      "assertions": []
+    },
+    {
+      "id": 3,
+      "name": "ambiguous-scope-should-ask-for-inputs",
+      "category": "input-validation",
+      "prompt": "Haz un gap analysis para el proyecto",
+      "expected_output": "The skill MUST NOT proceed to create any document. Instead, it should ASK the user for the 4 required inputs: (1) source context path, (2) target context path, (3) ticket reference (optional), (4) scope boundary. The agent should remain in interview mode until all inputs are clarified.",
+      "files": [],
+      "assertions": [
+        {
+          "type": "no_file_created",
+          "path_pattern": "docs/process/GAP-*.md",
+          "description": "No GAP document should be created before inputs are confirmed"
+        },
+        {
+          "type": "response_contains_questions",
+          "keywords": ["source", "target", "scope", "origen", "destino"],
+          "description": "Response should ask about the 4 required inputs"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "feasibility-study-non-migration",
+      "category": "edge-case",
+      "prompt": "Quiero evaluar si vale la pena migrar del actual sistema de autenticación JWT manual a usar una librería como authlib. Necesito un análisis técnico antes de tomar la decisión. Origen: sie_v2/backend/core/jwt_utils.py. Destino hipotético: usando authlib en un módulo nuevo.",
+      "expected_output": "Document at sie_v2/docs/process/GAP-*-authlib-feasibility.md. Even though destination is hypothetical (library not yet integrated), skill should still produce A (current jwt_utils), B (authlib patterns via web research or examples), C (bridge mapping), D (recommendations including GO/NO-GO signal). B.4 should flag that destination is greenfield.",
+      "files": [],
+      "assertions": []
+    }
+  ],
+  "evaluation_notes": {
+    "iteration_1_goals": [
+      "Verify skill triggers when prompts mention 'migración', 'gap analysis', 'refactor'",
+      "Verify skill ASKS for inputs when any of the 4 required inputs is missing (eval 3)",
+      "Verify output document has all 4 parts (A/B/C/D) and meets minimum thresholds",
+      "Verify skill respects the 'no source file modification' rule"
+    ],
+    "iteration_2_focus": [
+      "Refine the balance between thoroughness and token cost (Rule T1 digest effectiveness)",
+      "Validate that composition with po-analyst works (po-analyst calls gap-analysis before REQ)",
+      "Add assertions to evals 1, 2, 4 based on observed outputs"
+    ],
+    "known_limitations": [
+      "Eval 4 (authlib feasibility) is edge-case — skill primarily designed for intra-repo migrations. May need skill revision if we want to support pure feasibility studies without an existing destination codebase.",
+      "Assertions are qualitative in iteration 1; iteration 2 should add machine-checkable checks (grep file:line count, section presence, LOC of output doc)."
+    ]
+  }
+}

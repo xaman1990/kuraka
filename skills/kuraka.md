@@ -1,6 +1,6 @@
 ---
 name: kuraka
-description: "Development orchestrator (kuraka, del Quechua *kuraq* — 'el mayor'). Multi-agent workflow for end-to-end requirements: PO analysis → Story refinement → Test planning → Architect review → Implementation → Code review → Security → Tests → E2E → Deployment → Final audit. Scale the pipeline to the change's risk — see `kuraka-modes`."
+description: "Development orchestrator (kuraka, del Quechua *kuraq* — 'el mayor'). Multi-agent workflow for end-to-end requirements: PO analysis → Story refinement → Test planning → Architect review → Implementation → Code review → Security → Tests → E2E → Deployment → Final audit. Scale the pipeline to the change's risk — see [[kuraka-modes]]."
 ---
 
 # Kuraka — Development Orchestrator

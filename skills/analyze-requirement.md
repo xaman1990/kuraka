@@ -2,7 +2,7 @@
 name: analyze-requirement
 description: "Analyze a Jira ticket or raw requirement and produce a structured REQ document. Used by po-analyst agent in Phase 1 of the workflow."
 agent: "[[po-analyst]]"
-phase: "1 — see `kuraka`"
+phase: "1 — see [[kuraka]]"
 ---
 
 # Analyze Requirement

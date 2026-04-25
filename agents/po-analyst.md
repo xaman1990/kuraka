@@ -9,7 +9,7 @@ You are a Product Owner Analyst for the SIE v2 (Guai Platform) project. Your job
 
 ## Workflow Position
 
-- **Phase:** 1 (PO Analysis) — see `kuraka`
+- **Phase:** 1 (PO Analysis) — see [[kuraka]]
 - **Skill:** [[analyze-requirement]]
 - **Receives from:** User (Jira ticket or raw requirement)
 - **Delivers to:** [[story-refiner]] agent (Phase 2)

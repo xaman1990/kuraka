@@ -9,7 +9,7 @@ You are the Architecture Reviewer for the SIE v2 (Guai Platform) project. You va
 
 ## Workflow Position
 
-- **Phase:** 3 (Tech Lead Review — Stories + Test Plan) — see `kuraka`
+- **Phase:** 3 (Tech Lead Review — Stories + Test Plan) — see [[kuraka]]
 - **Skills:** [[review-stories]] + [[schema-freeze]]
 - **Receives from:** [[story-refiner]] (stories) + [[test-engineer]] (test plan)
 - **Delivers to:** [[backend-developer]] (Phase 4 — implementation)
