@@ -17,7 +17,7 @@
 
 set -euo pipefail
 
-VAULT="/Users/xmn/Documents/Agentes/AgentesTrabajos/kuraka"
+VAULT="${KURAKA_VAULT:-/Users/xmn/Documents/Agentes/AgentesTrabajos/kuraka}"
 TARGET="${1:-$PWD}"
 
 # --- sanity checks ---
@@ -117,16 +117,15 @@ GITIGNORE=".gitignore"
 touch "$GITIGNORE"
 
 PATTERNS=(
-    "# Personal Kuraka system — not shared with team"
+    "# Kuraka framework files (versioned externally; not source of this repo)"
     ".claude/agents/"
     ".claude/skills/"
     ".claude/commands/"
     ".claude/hooks/"
     ".claude/rules/16-agent-backup.md"
     ".claude/rules/17-kuraka-token-optimizations.md"
-    "docs/process/lessons-learned.md"
-    "docs/process/agent-telemetry/"
-    "tests/kuraka/"
+    "# Per-cycle telemetry JSONs (noise; the consolidated DASHBOARD.md is tracked)"
+    "docs/process/agent-telemetry/*.json"
 )
 
 ADDED=0

@@ -1,4 +1,18 @@
 #!/bin/bash
+# DEPRECATED — scheduled for removal in migration Fase 4.
+#
+# This bidirectional .claude/ <-> vault sync is being replaced by a one-way
+# model in which the framework lives in its own versioned repo pinned via
+# `kuraka.lock` in each consumer project. Consumers don't sync back to the
+# vault; they upgrade explicitly when they choose to. For Obsidian visibility,
+# prefer a symlink over running this script.
+#
+# Until Fase 4 lands this script still works for the legacy workflow, but
+# DO NOT add new dependencies on it.
+#
+# See 02-MIGRACION-FRAMEWORK.md (Fases 1, 4) for the migration plan.
+# ----------------------------------------------------------------------------
+#
 # Sync .claude/ content to Obsidian vault, converting backtick refs to wikilinks.
 #
 # Direction: .claude/ (local) --> Obsidian vault (backup)
@@ -15,7 +29,7 @@
 set -euo pipefail
 
 CLAUDE_DIR="$(cd "$(dirname "$0")/../.claude" && pwd)"
-OBSIDIAN_DIR="/Users/xmn/Documents/Agentes/AgentesTrabajos/kuraka"
+OBSIDIAN_DIR="${KURAKA_VAULT:-/Users/xmn/Documents/Agentes/AgentesTrabajos/kuraka}"
 
 # ---------------------------------------------------------------------------
 # Current agent and skill names (keep in sync with .claude/agents/ and .claude/skills/)

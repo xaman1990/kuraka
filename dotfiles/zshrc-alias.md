@@ -23,7 +23,7 @@ cat >> ~/.zshrc << 'EOF'
 # Uso: desde la raíz de cualquier proyecto, ejecutar: claude-sync
 # Convierte [[wikilinks]] de Obsidian a `backticks` para Claude Code
 claude-sync() {
-  local VAULT=/Users/xmn/Documents/Agentes/AgentesTrabajos/kuraka
+  local VAULT=${KURAKA_VAULT:-/Users/xmn/Documents/Agentes/AgentesTrabajos/kuraka}
   mkdir -p .claude/agents/contexts .claude/skills .claude/commands .claude/rules scripts
   cp "$VAULT"/agents/*.md .claude/agents/ 2>/dev/null
   cp "$VAULT"/agents/contexts/*.md .claude/agents/contexts/ 2>/dev/null
@@ -69,7 +69,9 @@ Restaurado: 13 agentes, 21 skills, 4 commands, 16 rules, sync-obsidian.sh-OK
 Si reinstalas macOS o cambias de máquina:
 
 1. Clona el vault: `git clone` (si lo tienes en git) o copia la carpeta
-2. Actualiza el `VAULT=...` si el path cambió
+2. Si el path cambió: exportá `KURAKA_VAULT` en tu `~/.zshrc`, p.ej.
+   `export KURAKA_VAULT="$HOME/.kuraka"`. La función lee esa variable
+   antes de caer al default hardcoded.
 3. Ejecuta el bloque de instalación de arriba
 
 ---
