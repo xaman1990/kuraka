@@ -18,13 +18,13 @@ Usa este skill si **cualquiera** de estas condiciones se cumple:
 - El ticket/usuario menciona "migración", "migration", "port", "rewrite", "refactor", "modernización", "upgrade" con dos codebases explícitos
 - Hay versiones distintas del mismo sistema como origen y destino (v1 → v2, legacy → modern, JS → Python, etc.)
 - Se pide analizar código existente como **input para un REQ futuro**, no como REQ directo
-- Eres [[po-analyst]] / [[amauta]] / [[architect-reviewer]] y el ticket que recibes es una migración — aplica este skill antes del REQ formal
+- Eres `po-analyst` / `amauta` / `architect-reviewer` y el ticket que recibes es una migración — aplica este skill antes del REQ formal
 
 **NO uses este skill cuando:**
 
-- Es un feature greenfield sin origen existente → usa [[analyze-requirement]]
-- Es onboarding de proyecto completo sin Kuraka → usa [[amauta]] con su flujo brownfield
-- Ya existe el análisis y toca producir el REQ formal → usa [[analyze-requirement]] tomando el GAP doc como input
+- Es un feature greenfield sin origen existente → usa `analyze-requirement`
+- Es onboarding de proyecto completo sin Kuraka → usa `amauta` con su flujo brownfield
+- Ya existe el análisis y toca producir el REQ formal → usa `analyze-requirement` tomando el GAP doc como input
 
 ---
 
@@ -200,20 +200,20 @@ El GAP doc está listo para pasarse a Phase 1 Kuraka cuando:
 
 | Agente que invoca | Cuándo |
 |---|---|
-| [[po-analyst]] | Input es un ticket de migración/refactor; antes de [[analyze-requirement]] |
-| [[amauta]] | Adaptando un provider/módulo legacy que no pasó por Kuraka |
-| [[architect-reviewer]] | Congelando schema de destino y necesita gap doc para validar diseño |
+| `po-analyst` | Input es un ticket de migración/refactor; antes de `analyze-requirement` |
+| `amauta` | Adaptando un provider/módulo legacy que no pasó por Kuraka |
+| `architect-reviewer` | Congelando schema de destino y necesita gap doc para validar diseño |
 
 **Output feed:**
 
-- Feed principal: [[analyze-requirement]] usa GAP doc como fuente para escribir `REQ-...md`
-- Feed secundario: [[schema-freeze]] consulta C.1 y C.5 para decidir schema destino
+- Feed principal: `analyze-requirement` usa GAP doc como fuente para escribir `REQ-...md`
+- Feed secundario: `schema-freeze` consulta C.1 y C.5 para decidir schema destino
 
 **No reemplaza a:**
 
-- [[analyze-requirement]] (producir REQ con stories) — GAP doc es su input
-- [[refine-stories]] (producir AC verificables) — viene después
-- [[schema-freeze]] (congelar schema BD) — viene después
+- `analyze-requirement` (producir REQ con stories) — GAP doc es su input
+- `refine-stories` (producir AC verificables) — viene después
+- `schema-freeze` (congelar schema BD) — viene después
 
 ---
 

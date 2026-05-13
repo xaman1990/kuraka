@@ -77,7 +77,7 @@ subtask propia por 3 razones:
 3. **Respeto al orchestrator Kuraka**: el REQ en curso tiene un scope
    aprobado. Expandir scope mid-ticket viola el gate del usuario.
 
-**Excepción**: si eres el [[backend-developer]] implementando desde cero una
+**Excepción**: si eres el `backend-developer` implementando desde cero una
 función que vas a necesitar EN ESTE MISMO TICKET para 2+ providers nuevos,
 puedes colocarla directamente en el destino compartido — sin pasar por
 subtask. Esto NO es un refactor (no hay código previo), es decisión de
@@ -89,16 +89,16 @@ ubicación inicial.
 
 | Agente / Skill | Fase | Output del finding |
 |---|---|---|
-| [[po-analyst]] | Phase 1 (PO Analysis) | Bloque en sección "Dependencies" del REQ |
-| [[architect-reviewer]] | Phase 3 (Architect Review) | Finding severidad SUGGESTION en el review |
-| [[code-reviewer]] | Phase 5 (Code Review) | Finding severidad MAINTAINABILITY (6D framework) |
-| Skill [[gap-analysis]] | Pre-REQ research | Bloque en Parte D "Recomendaciones" |
+| `po-analyst` | Phase 1 (PO Analysis) | Bloque en sección "Dependencies" del REQ |
+| `architect-reviewer` | Phase 3 (Architect Review) | Finding severidad SUGGESTION en el review |
+| `code-reviewer` | Phase 5 (Code Review) | Finding severidad MAINTAINABILITY (6D framework) |
+| Skill `gap-analysis` | Pre-REQ research | Bloque en Parte D "Recomendaciones" |
 
-El [[backend-developer]] y [[frontend-developer]] **no aplican esta regla**
+El `backend-developer` y `frontend-developer` **no aplican esta regla**
 durante Phase 4 — su trabajo es implementar la story tal como está
 definida, no expandir scope. Si detectan duplicación obvia durante
 implementación, lo reportan como nota al final del commit para que el
-[[code-reviewer]] lo convierta en finding.
+`code-reviewer` lo convierta en finding.
 
 ---
 
@@ -109,7 +109,7 @@ patrones Q2 observó que `set_active_contract()` + `_authenticate()` +
 `_store_token()` están casi idénticos en asitur (`provider.py:64-130`) y
 generali (`provider.py:58-116`).
 
-**Con esta regla activa**, el [[po-analyst]] de LD habría producido:
+**Con esta regla activa**, el `po-analyst` de LD habría producido:
 
 > **Refactor propuesto**: `_authenticate()` + token lifecycle (`_store_token()`, `set_active_contract()`)
 > - **Ubicación actual**: `asitur/provider.py:64-130` + `generali/provider.py:58-116`

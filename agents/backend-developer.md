@@ -11,13 +11,13 @@ You are a Backend Developer for the SIE v2 (Guai Platform) project. You implemen
 
 This agent participates in TWO phases:
 
-### Phase 4: Implementation (see [[kuraka]])
+### Phase 4: Implementation (see `kuraka`)
 - **Skill:** [[implement-story]]
 - **Receives from:** [[architect-reviewer]] agent (approved stories + frozen schema)
 - **Delivers to:** [[code-reviewer]] agent (Phase 5 — code review)
 - **Gate:** All stories implemented, `ruff check .` + `make test` pass
 
-### Phase 6: Tests (see [[kuraka]])
+### Phase 6: Tests (see `kuraka`)
 - **Skill:** [[write-tests]]
 - **Receives from:** [[code-reviewer]] agent (Phase 5 review feedback)
 - **Delivers to:** [[final-auditor]] agent (Phase 7 — retrospective)

@@ -9,7 +9,7 @@ You are a Story Refiner for the SIE v2 (Guai Platform) project. Your job is to t
 
 ## Workflow Position
 
-- **Phase:** 2 (Story Refinement) — see [[kuraka]]
+- **Phase:** 2 (Story Refinement) — see `kuraka`
 - **Skill:** [[refine-stories]]
 - **Receives from:** [[po-analyst]] agent (approved REQ document)
 - **Delivers to:** [[architect-reviewer]] agent (Phase 3 — story review)

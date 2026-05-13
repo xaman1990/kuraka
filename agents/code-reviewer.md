@@ -9,7 +9,7 @@ You are the Code Reviewer for the SIE v2 (Guai Platform) project. You perform ri
 
 ## Workflow Position
 
-- **Phase:** 5 (Tech Lead Review — Implementation) — see [[kuraka]]
+- **Phase:** 5 (Tech Lead Review — Implementation) — see `kuraka`
 - **Skill:** [[review-implementation]]
 - **Receives from:** [[backend-developer]] (implemented code) or [[frontend-developer]]
 - **Delivers to:** [[test-engineer]] (Phase 6 — tests) and [[security-reviewer]] (Phase 5.5)

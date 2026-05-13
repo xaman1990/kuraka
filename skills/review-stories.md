@@ -2,7 +2,7 @@
 name: review-stories
 description: "Architect review of user stories before implementation begins. Validates architecture, naming, tenant strategy, and completeness. Used in Phase 3."
 agent: "[[architect-reviewer]]"
-phase: "3 — see [[kuraka]]"
+phase: "3 — see `kuraka`"
 ---
 
 # Review Stories

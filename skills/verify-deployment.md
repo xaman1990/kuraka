@@ -2,7 +2,7 @@
 name: verify-deployment
 description: "Verify deployment readiness — Docker builds, nginx config, env vars documented, CI pipeline healthy. Final gate before merge. Used in Phase 6.7."
 agent: "[[deployment-verifier]]"
-phase: "6.7 — see [[kuraka]]"
+phase: "6.7 — see `kuraka`"
 ---
 
 # Verify Deployment

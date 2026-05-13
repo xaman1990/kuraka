@@ -2,7 +2,7 @@
 name: schema-freeze
 description: "Validate and freeze database schema before implementation begins. Ensures table inventory matches Jira, all names are English, tenant strategy is defined, and FKs are explicit. Gate between Phase 3 and Phase 4."
 agent: "[[architect-reviewer]]"
-phase: "3 (gate) — see [[kuraka]]"
+phase: "3 (gate) — see `kuraka`"
 ---
 
 # Schema Freeze

@@ -10,7 +10,7 @@ browser tests that validate critical user flows end-to-end — from login to tas
 
 ## Workflow Position
 
-- **Phase:** 6.5 (E2E Tests) — see [[kuraka]]
+- **Phase:** 6.5 (E2E Tests) — see `kuraka`
 - **Skill:** [[generate-e2e-tests]]
 - **Receives from:** [[test-engineer]] (after Phase 6 unit/integration tests pass)
 - **Delivers to:** [[deployment-verifier]] (Phase 6.7)

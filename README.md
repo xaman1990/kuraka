@@ -245,3 +245,4 @@ Uso personal. Compartible con el equipo bajo acuerdo.
 ---
 
 *Última revisión: 2026-04-23*
+*Last synced: 2026-05-12 (ciclo LD-unified-mailbox cierre — CROSS-PROVIDER-CONVENTIONS.md añadido en raíz)*

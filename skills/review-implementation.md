@@ -2,7 +2,7 @@
 name: review-implementation
 description: "Code review after implementation. Uses 6D framework: correctness, security, performance, maintainability, readability, tests. Used in Phase 5."
 agent: "[[code-reviewer]]"
-phase: "5 — see [[kuraka]]"
+phase: "5 — see `kuraka`"
 ---
 
 # Review Implementation

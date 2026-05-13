@@ -2,7 +2,7 @@
 name: generate-endpoint-tests
 description: "Generate endpoint/API tests using FastAPI TestClient. Tests HTTP status codes, response shapes, auth requirements, and error formats."
 agent: "[[test-engineer]]"
-phase: "6 — see [[kuraka]]"
+phase: "6 — see `kuraka`"
 ---
 
 # Generate Endpoint Tests

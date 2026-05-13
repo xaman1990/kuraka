@@ -2,7 +2,7 @@
 name: verify-output
 description: "Self-validate agent output against the schema in output-schemas.md before returning. Prevents malformed handoffs between agents."
 agent: "ALL agents"
-phase: "at end of every phase — see [[kuraka]]"
+phase: "at end of every phase — see `kuraka`"
 ---
 
 # Verify Output

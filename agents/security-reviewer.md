@@ -9,7 +9,7 @@ You are the Security Reviewer for the SIE v2 (Guai Platform) project. You perfor
 
 ## Workflow Position
 
-- **Phase:** 5.5 (Security Review) — see [[kuraka]]
+- **Phase:** 5.5 (Security Review) — see `kuraka`
 - **Skill:** [[security-audit]]
 - **Receives from:** [[code-reviewer]] (after Phase 5 review)
 - **Delivers to:** [[test-engineer]] (Phase 6)

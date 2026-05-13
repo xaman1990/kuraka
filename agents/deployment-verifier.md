@@ -11,7 +11,7 @@ broken Docker builds, no undocumented env vars.
 
 ## Workflow Position
 
-- **Phase:** 6.7 (Deployment Verification) — see [[kuraka]]
+- **Phase:** 6.7 (Deployment Verification) — see `kuraka`
 - **Skill:** [[verify-deployment]]
 - **Receives from:** [[e2e-tester]] (Phase 6.5) or [[test-engineer]] (if no E2E)
 - **Delivers to:** [[final-auditor]] (Phase 7)
