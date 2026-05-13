@@ -1,291 +1,292 @@
 ---
 name: kuraka-modes
-description: "Variantes del Kuraka (Bootstrap, Brownfield, Lite, Retroactive, Reducido por riesgo). Define cuándo usar cada modo según el tipo de proyecto o cambio."
+description: "Kuraka workflow variants (Bootstrap, Brownfield, Lite, Retroactive, Reduced-by-risk). Defines when to use each based on project type or change surface."
 ---
 
 # Kuraka — Modes
 
-Este fichero describe las variantes del flujo principal (`kuraka.md`). El default
-para cambios incrementales en un proyecto existente es **Normal** (8 fases). Los
-modos **Bootstrap** y **Brownfield** son puntas de lanza: se usan **una sola vez**
-al inicio de un proyecto nuevo o al integrar Kuraka en un codebase preexistente.
+This file describes the variants of the main flow (`kuraka.md`). The
+default for incremental changes in an existing project is **Normal**
+(8 phases). The **Bootstrap** and **Brownfield** modes are entry points:
+used **once** at the start of a new project or when integrating Kuraka
+into a pre-existing codebase.
 
-| Modo | Cuándo | Fases/agentes |
+| Mode | When | Phases / agents |
 |---|---|---|
-| **Bootstrap** (Greenfield) | Proyecto sin código todavía (solo una idea) | `inti` → `arki` → normal Kuraka |
-| **Brownfield** | Proyecto existente sin Kuraka todavía | `kuraka-inspect` → `amauta` → normal Kuraka |
-| **Normal** | Cambio en proyecto con Kuraka ya integrado | 8 fases (ver `kuraka.md`) |
-| **Reducido por riesgo** | Cambio estrecho de baja complejidad | 3–5 fases |
-| **Lite** | Cambio trivial (9 criterios estrictos) | 3 fases |
-| **Retroactive** | Código ya implementado sin pasar por Kuraka (anti-pattern) | 4 fases |
+| **Bootstrap** (Greenfield) | Project with no code yet (just an idea) | `inti` → `arki` → Normal Kuraka |
+| **Brownfield** | Existing project without Kuraka | `kuraka-inspect` → `amauta` → Normal Kuraka |
+| **Normal** | Change in a project with Kuraka already integrated | 8 phases (see `kuraka.md`) |
+| **Reduced by risk** | Narrow change of low complexity | 3–5 phases |
+| **Lite** | Trivial change (9 strict criteria) | 3 phases |
+| **Retroactive** | Code already implemented without Kuraka (anti-pattern) | 4 phases |
 
 ---
 
-## Modo: Bootstrap (Greenfield — proyecto nuevo)
+## Mode: Bootstrap (Greenfield — new project)
 
-**Cuándo**: arrancas un proyecto que no tiene código aún. El usuario solo
-tiene una idea, un brief de producto o un Figma. No hay stack elegido, no hay
-estructura de repo, no hay rules.
+**When**: starting a project with no code yet. The user only has an idea,
+a product brief, or a Figma. No stack chosen, no repo structure, no rules.
 
 **Phase map**:
 
 | Phase | Agent | Skill | Output | Gate |
 |---|---|---|---|---|
-| B1 | `inti` | (interview-driven) | `docs/discovery/vision.md` + `docs/discovery/requirements.md` | Usuario aprueba discovery |
-| B2 | `arki` | (stack proposal + bootstrap) | `docs/arquitectura/` + `.claude/rules/` + `kipus/` + source skeletons + project root files | Usuario aprueba stack + scaffolding |
+| B1 | `inti` | (interview-driven) | `docs/discovery/vision.md` + `docs/discovery/requirements.md` | User approves discovery |
+| B2 | `arki` | (stack proposal + bootstrap) | `kuraka.config.yaml` + `docs/arquitectura/` + `.claude/project/` skeleton + source skeletons + project root files | User approves stack + scaffolding |
 
-Tras B2, el proyecto está listo para el modo **Normal** con po-analyst como
-primera fase del primer REQ.
+After B2, the project is ready for **Normal** mode with `po-analyst` as
+the first phase of the first REQ.
 
-**Cómo arrancar**:
+**How to start**:
 
 ```bash
-# desde el directorio vacío del proyecto nuevo
-bash ~/.kuraka/mount-kuraka.sh    # monta agentes + rules básicas
-/exit                              # reinicia Claude Code para registrar agentes
-# nueva sesión:
-# invocar inti: "Quiero arrancar un proyecto nuevo: {descripción}"
+# from the empty directory of the new project
+bash ${KURAKA_VAULT}/mount-kuraka.sh    # mount agents + skills + stack-profiles
+/exit                                    # restart Claude Code to register agents
+# new session:
+# invoke inti: "I want to start a new project: {description}"
 ```
 
-**Cuándo NO usar Bootstrap**:
-- Ya existe código en el directorio → usa Brownfield
-- Ya existe `.claude/rules/` propio del proyecto → usa Normal directamente
+**When NOT to use Bootstrap**:
+- Code already exists in the directory → use Brownfield.
+- A `kuraka.config.yaml` already exists → use Normal directly.
 
-**Ahorro esperado**: Bootstrap reemplaza ~2 semanas de "pensar la arquitectura
-desde cero" con un flujo estructurado de 2 fases. No es un atajo — es rigor
-aplicado desde el día 0.
+**Expected saving**: Bootstrap replaces ~2 weeks of "thinking architecture
+from scratch" with a structured 2-phase flow. It's not a shortcut — it's
+rigor applied from day 0.
 
 ---
 
-## Modo: Brownfield (proyecto existente sin Kuraka)
+## Mode: Brownfield (existing project without Kuraka)
 
-**Cuándo**: el repo ya tiene código maduro pero Kuraka nunca se ha usado ahí.
-Necesitas generar `rules/`, `docs/` y `kipus/` sin inventar convenciones —
-extrayéndolas del código real.
+**When**: the repo already has mature code but Kuraka has never been
+used there. You need to generate `kuraka.config.yaml`, `.claude/project/`,
+and `docs/` without inventing conventions — extracting them from real
+code.
 
 **Phase map**:
 
-| Phase | Tool/Agent | Output | Gate |
+| Phase | Tool / Agent | Output | Gate |
 |---|---|---|---|
-| W0 | `kuraka-inspect.py` (script, no agente) | `inspect-report.json` | Usuario revisa el reporte |
-| W1 | `amauta` | `.claude/rules/` + `docs/` skeleton + `kipus/` + convention matrix con findings dudosos marcados | Usuario aprueba las reglas generadas |
+| W0 | `kuraka-inspect.py` (script, not an agent) | `inspect-report.json` | User reviews the report |
+| W1 | `amauta` | `kuraka.config.yaml` + `.claude/project/` skeleton + `docs/` skeleton + convention matrix with low-confidence findings flagged | User approves the generated rules |
 
-Tras W1, el proyecto está listo para modo **Normal** en su próximo REQ.
+After W1, the project is ready for **Normal** mode in its next REQ.
 
-**Cómo arrancar**:
+**How to start**:
 
 ```bash
-# desde la raíz del repo existente
-python3 ~/.kuraka/kuraka-inspect.py > inspect-report.json
-bash ~/.kuraka/mount-kuraka.sh    # monta agentes
-/exit                              # reinicia Claude Code
-# nueva sesión:
-# invocar amauta: "Acabo de montar Kuraka en este proyecto existente.
-#                  Lee inspect-report.json y genera rules + docs."
+# from the root of the existing repo
+python3 ${KURAKA_VAULT}/kuraka-inspect.py > inspect-report.json
+bash ${KURAKA_VAULT}/mount-kuraka.sh    # mount agents + skills + stack-profiles
+/exit                                    # restart Claude Code
+# new session:
+# invoke amauta: "I just mounted Kuraka in this existing project.
+#                 Read inspect-report.json and generate config + project layer."
 ```
 
-**Cuándo NO usar Brownfield**:
-- Proyecto sin código aún → usa Bootstrap
-- Ya hay `.claude/rules/` propio → solo falta sync de agentes, no rehacer reglas
+**When NOT to use Brownfield**:
+- No code yet → use Bootstrap.
+- `kuraka.config.yaml` already exists → only sync agents, don't regenerate.
 
-**Regla dorada del amauta**: nunca inventes convenciones. Si no las viste en
-código, marcarlas como TODO es mejor que fabricarlas.
+**Amauta's golden rule**: never invent conventions. If you didn't see it
+in code, marking it as TODO is better than fabricating it.
 
 ---
 
-## Modo: Reducido por riesgo (recomendado para cambios pequeños estructurales)
+## Mode: Reduced by risk (recommended for small structural changes)
 
-**Cuándo:** la superficie del cambio es estrecha y no toca lógica crítica.
+**When:** the change surface is narrow and doesn't touch critical logic.
 
-**Cómo elegir**:
+**How to choose**:
 
-| Superficie | Pipeline mínimo | Omite (con razón) |
+| Surface | Minimum pipeline | Omit (with reason) |
 |---|---|---|
-| UI-only restyle (CSS/clases, sin lógica) | 1 + 2 + 4b | 2.5, 3, 5, 5.5, 6, 6.5, 6.7, 7 (no hay lógica nueva) |
-| Type tightening (sin lógica) | 1 + 4b + 5 | 2.5, 3, 5.5, 6, 6.5, 6.7, 7 (review detecta magic strings) |
-| Rename mecánico (identifier / file) | 1 (combinado con 2) + 4b + 5 | 2.5, 3, 5.5, 6.5, 6.7, 7 |
+| UI-only restyle (CSS / classes, no logic) | 1 + 2 + 4b | 2.5, 3, 5, 5.5, 6, 6.5, 6.7, 7 (no new logic) |
+| Type tightening (no logic) | 1 + 4b + 5 | 2.5, 3, 5.5, 6, 6.5, 6.7, 7 (review detects magic strings) |
+| Mechanical rename (identifier / file) | 1 (combined with 2) + 4b + 5 | 2.5, 3, 5.5, 6.5, 6.7, 7 |
 | Config edit (env var, docker-compose) | 1 + 4 + 6.7 | 2, 2.5, 3, 5.5, 6, 6.5, 7 |
 
-**Regla**: propone el pipeline al usuario con tabla justificando cada fase
-omitida. No asumas; pregunta antes de invocar agentes.
+**Rule**: propose the pipeline to the user with a table justifying each
+omitted phase. Don't assume; ask before invoking agents.
 
-**No uses este modo** para cambios que toquen lógica de negocio, contratos API,
-BD, auth o providers — ahí Normal es obligatorio.
+**Do NOT use this mode** for changes that touch business logic, API
+contracts, DB, auth, or integrations — Normal is mandatory there.
 
-Ver también `rules/17-kuraka-token-optimizations.md` para los patrones T1–T5
-aplicables en cualquier modo.
+See also `rules/17-kuraka-token-optimizations.md` for patterns T1–T5
+applicable in any mode.
 
 ---
 
-## Modo: Lite (cambios triviales, criterio estricto)
+## Mode: Lite (trivial changes, strict criteria)
 
-> ⚠️ Modo EXCLUSIVO para cambios triviales que cumplen TODOS los 9 criterios
-> abajo. Si alguno falla → usa Normal o Reducido por riesgo. No uses Lite para
-> ahorrar tiempo en cambios normales.
+> ⚠️ EXCLUSIVE mode for trivial changes that meet ALL 9 criteria below.
+> If any fails → use Normal or Reduced-by-risk. Do not use Lite to save
+> time on normal changes.
 
-### Criterios OBLIGATORIOS
+### MANDATORY criteria
 
-- [ ] **≤ 3 archivos fuente afectados**
-- [ ] **0 migraciones Alembic**
-- [ ] **0 endpoints nuevos** (solo modifica existentes o no toca endpoints)
-- [ ] **0 cambios de schema SQL**
-- [ ] **0 cambios de contrato API** (request/response estables)
-- [ ] **Sin impacto en auth ni permisos**
-- [ ] **Sin cambios en código de seguridad** (auth, encryption, tokens)
-- [ ] **Sin cambios en providers**
-- [ ] **Complejidad S — ≤ 50 LOC totales**
+- [ ] **≤ 3 source files affected**
+- [ ] **0 DB migrations**
+- [ ] **0 new endpoints** (only modifies existing or doesn't touch endpoints)
+- [ ] **0 SQL schema changes**
+- [ ] **0 API contract changes** (request/response stable)
+- [ ] **No impact on auth or permissions**
+- [ ] **No changes to security code** (auth, encryption, tokens)
+- [ ] **No changes to integrations**
+- [ ] **Complexity S — ≤ 50 LOC total**
 
-Si CUALQUIERA falla → **NO es Lite**.
+If ANY fails → **NOT Lite**.
 
-### Casos que NUNCA califican
+### Cases that NEVER qualify
 
-- Agregar/quitar columna de BD (aunque sea 1 línea en el modelo)
-- Nuevo endpoint, aunque sea trivial
-- Cambio en `backend/api/services/providers/`
-- Cambio en auth / JWT / tokens / CORS
-- Cambio en logging de datos sensibles
-- Migración o seeding de datos de producción
-- Cambio en stores de Pinia compartidos
+- Add / remove a DB column (even 1 line in the model).
+- New endpoint, however trivial.
+- Change in integration / provider code.
+- Change to auth / JWT / tokens / CORS.
+- Change to logging of sensitive data.
+- Migration or seeding of production data.
+- Change to shared frontend state stores.
 
-### Ejemplo SÍ: REQ-20260420-clean-specialty-names
-2 archivos, 0 migraciones, cambio puramente de display (UI fallback), complejidad S.
+### Phase Map Lite (3 agents vs 8)
 
-### Ejemplo NO: REQ-2026-04-17-excel-parallel-generation
-1 archivo pero +150 LOC con cambio de algoritmo (semáforo, parallel async).
+| Lite Phase | Agents | Replaces |
+|------------|--------|----------|
+| L1 | `po-analyst` (mode: LITE_COMBINED) | Phase 1 + 2 + 2.5 |
+| L2 | `backend-developer` / `frontend-developer` | Phase 4 |
+| L3 | `code-reviewer` + writes tests | Phase 3 + 5 + 6 + 7 |
 
-### Phase Map Lite (3 agentes vs 8)
-
-| Lite Phase | Agentes | Reemplaza |
-|------------|---------|-----------|
-| L1 | [[po-analyst]] (mode: LITE_COMBINED) | Phase 1 + 2 + 2.5 |
-| L2 | [[backend-developer]] / [[frontend-developer]] | Phase 4 |
-| L3 | [[code-reviewer]] + escribe tests | Phase 3 + 5 + 6 + 7 |
-
-**Fases omitidas** (justificación inherente al modo):
-- Phase 3 (Architect) — L3 review lo cubre
-- Phase 5.5 (Security) — Lite no permite cambios de seguridad
-- Phase 6.5 (E2E) — Lite no permite cambios de flujo
-- Phase 6.7 (Deployment) — Lite no permite cambios de config
-- Phase 7 (Final Audit) — reemplazado por nota ligera en L3
+**Phases omitted** (justification inherent to the mode):
+- Phase 3 (Architect) — L3 review covers it.
+- Phase 5.5 (Security) — Lite doesn't allow security changes.
+- Phase 6.5 (E2E) — Lite doesn't allow flow changes.
+- Phase 6.7 (Deployment) — Lite doesn't allow config changes.
+- Phase 7 (Final Audit) — replaced by a light note in L3.
 
 ### L1 — Combined PO + Stories + Test Plan
 
-Agent: [[po-analyst]] (mode: LITE_COMBINED)
+Agent: `po-analyst` (mode: LITE_COMBINED).
 
-Output: `docs/process/REQ-LITE-{YYYYMMDD}-{slug}.md` todo-en-uno con:
-- Scope + 9 criterios Lite verificados
-- Lista de archivos afectados
-- 1–3 stories embebidas con AC
-- Test plan mínimo embebido
-- Confidence
+Output:
+`${architecture.paths.docs_process_root}/REQ-LITE-{YYYYMMDD}-{slug}.md`
+all-in-one with:
+- Scope + 9 Lite criteria verified.
+- List of affected files.
+- 1–3 stories embedded with AC.
+- Minimum test plan embedded.
+- Confidence.
 
-Gate: usuario aprueba el REQ-LITE.
+Gate: user approves the REQ-LITE.
 
 ### L2 — Implementation
 
-Agent: [[backend-developer]] o [[frontend-developer]] (según corresponda).
+Agent: `backend-developer` or `frontend-developer` (whichever applies).
 
-Implementa stories secuencialmente. Si hay backend + frontend, se invocan
-ambos (backend primero si hay contrato). Cada uno corre sus checks.
+Implements stories sequentially. If there's backend + frontend, both are
+invoked (backend first if there's a contract). Each runs its checks.
 
-Gate: archivos modificados + tests pasando.
+Gate: files modified + tests passing.
 
 ### L3 — Review + Audit
 
-Agent: [[code-reviewer]] (mode: LITE_FINAL). Una sola invocación hace:
-1. Code review 6D
-2. Genera tests si el developer no los escribió
-3. RETRO corto solo si hay lección preventible
+Agent: `code-reviewer` (mode: LITE_FINAL). A single invocation does:
+1. 6D code review.
+2. Generate tests if the developer didn't write them.
+3. Short RETRO only if there's a preventable lesson.
 
-Output: review report con verdict + RETRO corto (opcional).
+Output: review report with verdict + short RETRO (optional).
 
-Gate: findings resueltos.
+Gate: findings resolved.
 
-### Template Workflow Status (Lite)
+### Lite Workflow Status Template
 
 ```markdown
 ## Workflow Status (Lite)
-- [x] Lite Criteria: 9/9 VERIFICADOS ✓
+- [x] Lite Criteria: 9/9 VERIFIED ✓
 - [ ] L1: REQ-LITE + Stories + Test Plan
 - [ ] L2: Implementation
 - [ ] L3: Review + Tests + Audit
 ```
 
-### Ahorro esperado (datos históricos)
+### Expected saving (historical data)
 
-- REQ-20260420 tipo: ~706K → ~200K tokens (−71%)
-- Duración: ~12 min → ~4 min
-- Gates de aprobación: 8 → 3
+Typical Lite cycle: ~70% token reduction vs Normal, ~3× faster duration,
+fewer approval gates (3 vs 8).
 
-### Regla de oro
+### Golden rule
 
-**Si dudas si califica como Lite → NO califica.** Usa Normal o Reducido por
-riesgo. Un workflow "caro" bien hecho cuesta menos que un Lite mal aplicado.
+**If you doubt whether it qualifies as Lite → it does NOT qualify.** Use
+Normal or Reduced-by-risk. An "expensive" workflow well-applied costs
+less than a Lite badly-applied.
 
-### Escalamiento mid-cycle
+### Mid-cycle escalation
 
-Si durante L2/L3 descubres que el cambio es más complejo de lo esperado (p.ej.
-requiere columna nueva):
+If during L2 / L3 you discover that the change is more complex than
+expected (e.g., requires a new column):
 
-1. **STOP inmediato**
-2. Notifica al usuario: "Este cambio ya no califica como Lite. Requiere escalar. ¿Procedo?"
-3. Revierte si es necesario
-4. Re-arranca en Phase 1 de Normal con el contexto ya conocido
+1. **STOP immediately.**
+2. Notify the user: "This change no longer qualifies as Lite. It needs
+   to escalate. Proceed?"
+3. Revert if necessary.
+4. Re-start at Phase 1 of Normal with the known context.
 
 ---
 
-## Modo: Retroactive (código ya implementado)
+## Mode: Retroactive (code already implemented)
 
-**Trigger**: el usuario dice que la implementación ya está hecha, o detectas que
-los archivos modificados ya contienen los cambios descritos.
+**Trigger**: the user says the implementation is already done, or you
+detect that the modified files already contain the described changes.
 
-**Anti-pattern**: evítalo cuando sea posible. La existencia de este modo
-implica que se saltó el workflow — no es una alternativa válida "por defecto".
-Existe para reconstruir documentación retroactivamente, no para justificar
-bypass sistemático.
+**Anti-pattern**: avoid it when possible. The existence of this mode
+implies the workflow was skipped — it is NOT a valid default. It exists
+to reconstruct documentation retroactively, not to justify systematic
+bypass.
 
 ### Phase Map Retroactive
 
-| Retro Phase | Reemplaza | Agent | Función |
-|------------|-----------|-------|---------|
-| R1 | Phase 1 + 2 + 2.5 | [[po-analyst]] | Genera REQ + stories + test plan en un pase leyendo el código existente |
-| R2 | Phase 3 + 5 | [[code-reviewer]] | Review conjunto de stories, test plan e implementación |
-| R3 | Phase 6 | (skip si tests existen) | Valida tests existentes, escribe los que falten |
-| R4 | Phase 7 | [[final-auditor]] | Retrospectiva |
+| Retro Phase | Replaces | Agent | Function |
+|------------|----------|-------|----------|
+| R1 | Phase 1 + 2 + 2.5 | `po-analyst` | Generate REQ + stories + test plan in one pass by reading existing code |
+| R2 | Phase 3 + 5 | `code-reviewer` | Joint review of stories, test plan, and implementation |
+| R3 | Phase 6 | (skip if tests exist) | Validate existing tests, write missing ones |
+| R4 | Phase 7 | `final-auditor` | Retrospective |
 
 ### R1 — Combined PO + Stories + Test Plan
 
-Agent: [[po-analyst]] en un solo pase. Lee el código implementado y los tests
-existentes para extraer nombres de funciones, paths, y test cases **reales**
-(no inventados).
+Agent: `po-analyst` in a single pass. Reads the implemented code and
+existing tests to extract function names, paths, and **real** test
+cases (not fabricated).
 
-Output: REQ + stories + test plan (mismas ubicaciones que modo Normal).
+Output: REQ + stories + test plan (same locations as Normal mode).
 
-Gate: usuario aprueba todo antes de R2.
+Gate: user approves everything before R2.
 
 ### R2 — Combined Review
 
-Agent: [[code-reviewer]]. Una sola invocación revisa stories Y código juntos
-(el código ya existe, review de stories separado no aporta valor adicional).
+Agent: `code-reviewer`. A single invocation reviews stories AND code
+together (the code already exists; separate story review adds no
+additional value).
 
-Output: review report único cubriendo fidelidad de stories + calidad de código.
+Output: single review report covering story fidelity + code quality.
 
-Gate: BLOCKER e IMPORTANT resueltos.
+Gate: BLOCKER and IMPORTANT resolved.
 
 ### R3 — Test Validation
 
 ```bash
-cd sie_v2 && ruff check . && make test
+${stack.backend.lint_cmd}
+${stack.backend.test_cmd}
 ```
 
-Si faltan tests, [[test-engineer]] los escribe.
+If tests are missing, `test-engineer` writes them.
 
 ### R4 — Final Audit
 
-Igual que Phase 7 Normal. El [[final-auditor]] produce el RETRO con especial
-atención al motivo por el que se saltó el workflow (para prevenir repetición).
+Same as Phase 7 Normal. The `final-auditor` produces the RETRO with
+special attention to why the workflow was skipped (to prevent
+repetition).
 
-### Template Workflow Status (Retroactive)
+### Retroactive Workflow Status Template
 
 ```markdown
 ## Workflow Status (Retroactive)
@@ -295,11 +296,11 @@ atención al motivo por el que se saltó el workflow (para prevenir repetición)
 - [ ] R4: Final Audit
 ```
 
-### Ahorro estimado
+### Estimated saving
 
-Retroactive usa 2–3 agentes vs 5–6 de Normal → −40–60% de tokens. Las
-economías vienen de:
-- Sin story-refiner separado (merged en PO)
-- Sin pass de REVIEW_STORIES separado (merged en REVIEW_IMPLEMENTATION)
-- Phase 4 totalmente saltada (ya implementado)
-- Phase 6 reducida a validación, no escritura
+Retroactive uses 2–3 agents vs 5–6 of Normal → −40 to −60% of tokens.
+The savings come from:
+- No separate story-refiner (merged into PO).
+- No separate REVIEW_STORIES pass (merged into REVIEW_IMPLEMENTATION).
+- Phase 4 entirely skipped (already implemented).
+- Phase 6 reduced to validation, not writing.

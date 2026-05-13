@@ -1,35 +1,35 @@
 ---
 name: kuraka-policies
-description: "Políticas transversales del Kuraka: retry, timeout, presupuesto de tokens, failure fallback, checkpointing y telemetry. Se aplica en cualquier modo."
+description: "Cross-cutting Kuraka policies: retry, timeout, token budget, failure fallback, checkpointing, and telemetry. Applies in any mode."
 ---
 
 # Kuraka — Policies
 
-Políticas transversales que se aplican en cualquier modo del Kuraka
-(Normal, Reducido por riesgo, Lite, Retroactive).
+Cross-cutting policies that apply in any Kuraka mode (Normal,
+Reduced-by-risk, Lite, Retroactive).
 
 ---
 
 ## Agent Invocation Policy
 
-Cada llamada a `Agent` tiene políticas de retry y timeout para prevenir que
-fallos silenciosos se propaguen por el workflow.
+Every `Agent` call has retry and timeout policies to prevent silent
+failures from propagating through the workflow.
 
 ### Retry policy
 
-- **Máximo 2 reintentos por agente** (3 intentos totales)
+- **Max 2 retries per agent** (3 total attempts).
 - **Retry triggers**:
-  - Output malformado (falla el schema de [[verify-output]])
-  - Agente devolvió marker `VALIDATION_FAILED`
-  - Error transitorio de tool (red, rate limit)
-- **NO retry en**:
-  - Error que requiere input del usuario (pregunta al usuario)
-  - Rechazo deliberado del agente (ej: "no puedo continuar sin X")
-  - 3er fallo — escalar al usuario
+  - Malformed output (fails the `verify-output` schema).
+  - Agent returned `VALIDATION_FAILED` marker.
+  - Transient tool error (network, rate limit).
+- **NO retry on**:
+  - Error requiring user input (ask the user).
+  - Deliberate agent rejection (e.g., "I can't proceed without X").
+  - 3rd failure — escalate to the user.
 
 ### Retry protocol
 
-En cada reintento, el orquestador inyecta feedback en el próximo prompt:
+On each retry, the orchestrator injects feedback into the next prompt:
 
 ```
 PREVIOUS ATTEMPT FAILED VALIDATION
@@ -42,88 +42,103 @@ Please re-generate addressing these issues.
 
 ### Timeout policy
 
-- **Máximo 10 minutos por invocación** (`duration_ms > 600_000`)
-- **Timeout escala al usuario**: "El agente {agent} lleva 10+ min. ¿Continuar, abortar o cambiar estrategia?"
-- **Tareas largas legítimas**: raras. Si esperas superar 10 min, parte la tarea en unidades menores.
+- **Max 10 minutes per invocation** (`duration_ms > 600_000`).
+- **Timeout escalates to the user**: "Agent {agent} has been running 10+
+  min. Continue, abort, or change strategy?"
+- **Legitimate long tasks**: rare. If you expect to exceed 10 min, split
+  the task into smaller units.
 
-### Failure fallback (3 intentos fallidos)
+### Failure fallback (3 failed attempts)
 
-1. Escribe checkpoint con `status: "paused"` y detalles del fallo
-2. Reporta al usuario:
-   - Qué agente falló
-   - Qué produjeron los 3 intentos
-   - Próximos pasos sugeridos (retry manual, skip, humano)
-3. **ESPERA decisión del usuario** — no auto-skipeas fases críticas
+1. Write checkpoint with `status: "paused"` and failure details.
+2. Report to the user:
+   - Which agent failed.
+   - What the 3 attempts produced.
+   - Suggested next steps (manual retry, skip, human).
+3. **WAIT for user decision** — don't auto-skip critical phases.
 
-### Tool use limits por agente
+### Tool use limits per agent
 
-Para prevenir loops descontrolados:
+To prevent runaway loops:
 
-| Categoría | Max tool uses |
+| Category | Max tool uses |
 |---|---|
-| Research (po-analyst, explore) | 30 |
-| Implementation (backend-developer, frontend-developer) | 50 |
-| Review (architect-reviewer, code-reviewer, security-reviewer) | 40 |
-| Audit (final-auditor, pattern-detector) | 25 |
+| Research (`po-analyst`, exploration) | 30 |
+| Implementation (`backend-developer`, `frontend-developer`) | 50 |
+| Review (`architect-reviewer`, `code-reviewer`, `security-reviewer`) | 40 |
+| Audit (`final-auditor`, `pattern-detector`) | 25 |
 
-Si un agente excede su límite sin producir output → tratar como timeout.
+If an agent exceeds its limit without producing output → treat as timeout.
 
-### Política frente a rate limits durante Phase 4
+### Rate-limit policy during Phase 4
 
-El orquestador **NO** debe escribir código de implementación bajo ninguna circunstancia. Si el subagente implementador (`backend-developer`, `frontend-developer`, `test-engineer`) está rate-limited:
+The orchestrator **MUST NOT** write implementation code under any
+circumstances. If the implementer subagent (`backend-developer`,
+`frontend-developer`, `test-engineer`) is rate-limited:
 
-1. **Primera opción** — `ScheduleWakeup` con delay basado en duración estimada del rate limit:
-   - Mensaje "rate limited, retry in N minutes" → `ScheduleWakeup(delaySeconds=N*60+30, ...)` con prompt que reanude la story exacta.
-2. **Segunda opción** — degradar a un agente alternativo: si el bloqueo es solo de un modelo específico, intentar `simplify` o un agente de menor coste para tareas mecánicas (reducir scope a copy-paste con citas exactas).
-3. **Excepción documentada** — el orquestador puede escribir SOLO en estos casos, anunciando primero al usuario:
-   - Edits ≤ 5 LOC para fix puntual de un IMPORTANT post-review
-   - Refactor mecánico de una migration ya escrita (cambio de patrón sin nueva lógica)
-   - **NUNCA** un archivo nuevo de >50 LOC
+1. **First option** — `ScheduleWakeup` with delay based on estimated
+   rate-limit duration:
+   - Message "rate limited, retry in N minutes" →
+     `ScheduleWakeup(delaySeconds=N*60+30, ...)` with a prompt that
+     resumes the exact story.
+2. **Second option** — degrade to an alternative agent: if the block is
+   specific to one model, try `simplify` or a lower-cost agent for
+   mechanical tasks (reduce scope to copy-paste with exact citations).
+3. **Documented exception** — the orchestrator may write SOLELY in these
+   cases, announcing first to the user:
+   - Edits ≤ 5 LOC for a precise fix of a post-review IMPORTANT.
+   - Mechanical refactor of an already-written migration (pattern change
+     with no new logic).
+   - **NEVER** a new file of > 50 LOC.
 
-Si el orquestador escribe código fuera de las excepciones, debe:
-- Anunciar la violación al usuario antes
-- Pedir aprobación explícita
-- Disparar un re-review obligatorio del agente que correspondería (mismo rol, en otra invocación cuando el rate limit haya pasado)
-- Documentar la violación en el RETRO de Phase 7
+If the orchestrator writes code outside the exceptions, it must:
+- Announce the violation to the user first.
+- Request explicit approval.
+- Trigger a mandatory re-review by the corresponding agent (same role,
+  in a different invocation once the rate limit has passed).
+- Document the violation in the Phase 7 RETRO.
 
-**Por qué:** Lección directa de DD-896 FM-04 — el orquestador implementó S5 (`payload_builder.py`, 225 LOC) directamente por rate limit del `backend-developer`. Re-review mitigó el riesgo pero el patrón es peligroso: si se normaliza, el orquestador degrada a implementer y se pierde el aislamiento de roles.
+**Why**: an orchestrator that implements directly normalizes a
+role-isolation breakage that's hard to walk back from. Re-review can
+mitigate the risk per case, but the pattern is dangerous if it becomes
+routine.
 
 ---
 
-## Token Budget (recomendado)
+## Token Budget (recommended)
 
-Presupuesto nominal por fase para detectar desviaciones:
+Nominal budget per phase to detect deviations:
 
-| Fase | Target | Investigar si excede |
+| Phase | Target | Investigate if exceeds |
 |---|---:|---|
 | 1 PO Analysis | 80–120K | 200K |
 | 2 Story Refinement | 60–100K | 180K |
 | 2.5 Test Planning | 60–100K | 150K |
 | 3 Architect Review | 50–80K | 150K |
-| 4a Backend Impl (por story M) | 100–200K | 400K |
-| 4b Frontend Impl (por story M) | 100–200K | 400K |
+| 4a Backend Impl (per story M) | 100–200K | 400K |
+| 4b Frontend Impl (per story M) | 100–200K | 400K |
 | 5 Code Review | 70–120K | 200K |
 | 5.5 Security Review | 60–100K | 180K |
-| 6 Tests (por story M) | 80–150K | 300K |
+| 6 Tests (per story M) | 80–150K | 300K |
 | 6.5 E2E | 50–100K | 200K |
 | 6.7 Deployment | 30–60K | 120K |
 | 7 Final Audit | 40–80K | 150K |
 
-**Acción si una fase excede el "investigar si excede"**:
-1. Abortar la fase si aún está corriendo
-2. Analizar telemetría (¿qué ficheros leyó? ¿cuántos tool_uses?)
-3. Aplicar patrones T1–T5 de `rules/17-kuraka-token-optimizations.md`
-4. Re-lanzar con prompt optimizado
+**Action if a phase exceeds "investigate if exceeds"**:
+1. Abort the phase if still running.
+2. Analyze telemetry (which files were read? how many tool_uses?).
+3. Apply patterns T1–T5 from `rules/17-kuraka-token-optimizations.md`.
+4. Re-launch with an optimized prompt.
 
 ---
 
-## Checkpointing (OBLIGATORIO)
+## Checkpointing (MANDATORY)
 
-Después de CADA gate aprobado por el usuario, escribe el estado del workflow a:
+After EACH gate approved by the user, write the workflow state to:
 
-`sie_v2/docs/process/checkpoints/{REQ-name}-state.json`
+`${architecture.paths.docs_process_root}/checkpoints/{REQ-name}-state.json`
 
-### Estructura
+### Structure
 
 ```json
 {
@@ -139,7 +154,7 @@ Después de CADA gate aprobado por el usuario, escribe el estado del workflow a:
     "req_path": "docs/process/REQ-...",
     "story_paths": ["docs/process/stories/..."],
     "test_plan_path": "docs/process/test-plans/...",
-    "frozen_schema_path": "docs/process/schemas/..." ,
+    "frozen_schema_path": "docs/process/schemas/...",
     "review_reports": {
       "phase_3": null,
       "phase_5": null,
@@ -152,38 +167,41 @@ Después de CADA gate aprobado por el usuario, escribe el estado del workflow a:
 }
 ```
 
-### Cuándo escribir
+### When to write
 
-- Tras aprobación de Phase 1 → crear checkpoint inicial
-- Tras CADA gate → actualizar `phases_completed`, `current_phase`, `last_updated`
-- Cuando el usuario pausa sesión → `status: "paused"`
-- Cuando Phase 7 completa → rename a `{REQ-name}-state.final.json`, `status: "completed"`
+- After approval of Phase 1 → create initial checkpoint.
+- After EACH gate → update `phases_completed`, `current_phase`, `last_updated`.
+- When the user pauses the session → `status: "paused"`.
+- When Phase 7 completes → rename to `{REQ-name}-state.final.json`,
+  `status: "completed"`.
 
 ### Resume protocol
 
-Si se reanuda una sesión (chat nuevo, crash recovery):
+If a session is resumed (new chat, crash recovery):
 
-1. Leer `{REQ-name}-state.json` más reciente
-2. Confirmar con usuario: "Reanudando {REQ-name} desde fase {current_phase}. ¿Continuar?"
-3. Re-cargar artifacts vía paths en `artifacts.*`
-4. Continuar desde `phases_pending[0]`
+1. Read the most recent `{REQ-name}-state.json`.
+2. Confirm with user: "Resuming {REQ-name} from phase {current_phase}. Continue?"
+3. Reload artifacts via paths in `artifacts.*`.
+4. Continue from `phases_pending[0]`.
 
-**Nunca saltar fases al reanudar** — si una fase dice "completed" pero el
-artifact no existe, tratar el checkpoint como corrupto y preguntar al usuario.
+**Never skip phases when resuming** — if a phase says "completed" but
+the artifact doesn't exist, treat the checkpoint as corrupt and ask the
+user.
 
 ---
 
-## Token Telemetry (OBLIGATORIO)
+## Token Telemetry (MANDATORY)
 
-Cada invocación de `Agent` devuelve un bloque `<usage>` con `total_tokens`,
-`tool_uses` y `duration_ms`. DEBES apendearlo a un JSON de telemetría para
-que el [[final-auditor]] (Phase 7) analice consumo por agente.
+Every `Agent` invocation returns a `<usage>` block with `total_tokens`,
+`tool_uses`, and `duration_ms`. You MUST append it to a telemetry JSON
+so the `final-auditor` (Phase 7) can analyze consumption by agent.
 
-**Fichero**: `sie_v2/docs/process/agent-telemetry/{REQ-name}-telemetry.json`
+**File**:
+`${architecture.paths.docs_process_root}/agent-telemetry/{REQ-name}-telemetry.json`
 
 ### Flow
 
-1. Tras la **primera** llamada a Agent del ciclo, crear el fichero:
+1. After the **first** Agent call in the cycle, create the file:
    ```json
    {
      "req_name": "REQ-YYYY-MM-DD-slug",
@@ -191,7 +209,7 @@ que el [[final-auditor]] (Phase 7) analice consumo por agente.
      "runs": []
    }
    ```
-2. Tras **cada** llamada a Agent, añadir una entrada:
+2. After **each** Agent call, add an entry:
    ```json
    {
      "phase": "<int | string>",
@@ -204,107 +222,116 @@ que el [[final-auditor]] (Phase 7) analice consumo por agente.
      "budget_ok": true
    }
    ```
-3. Si un agente se invoca varias veces en la misma fase, cada invocación es
-   su propia entrada — usa `mode` para desambiguar.
-4. Si **no** usas `Agent` para una fase (trabajo directo del orquestador),
-   omite la entrada — solo se trackean invocaciones reales.
-5. Marca `budget_ok: false` si la fase superó su "investigar si excede".
+3. If an agent is invoked multiple times in the same phase, each
+   invocation is its own entry — use `mode` to disambiguate.
+4. If you do **not** use `Agent` for a phase (direct orchestrator work),
+   omit the entry — only track real invocations.
+5. Mark `budget_ok: false` if the phase exceeded its "investigate if
+   exceeds" threshold.
 
-El [[final-auditor]] lee este JSON en Phase 7 y produce el ranking de tokens en
-la retrospectiva. Falta de telemetría degrada el retro pero no lo bloquea.
+The `final-auditor` reads this JSON in Phase 7 and produces the token
+ranking in the retro. Missing telemetry degrades the retro but doesn't
+block it.
 
 ---
 
-## Model Routing (Path C)
+## Model Routing
 
-Cada agente tiene un modelo asignado en su frontmatter según coste/juicio:
+Each agent has a model assigned in its frontmatter according to cost / judgment:
 
-| Modelo | Agentes | Por qué |
+| Model | Agents | Why |
 |---|---|---|
-| **opus** | [[po-analyst]], [[architect-reviewer]], [[security-reviewer]], [[final-auditor]] | Razonamiento complejo, múltiples fuentes, juicio estratégico |
-| **sonnet** | [[story-refiner]], [[backend-developer]], [[frontend-developer]], [[code-reviewer]], [[test-engineer]] | Implementación y review balanceados |
-| **haiku** | [[deployment-verifier]], [[pattern-detector]], [[migration-reviewer]], [[e2e-tester]] | Checks mecánicos, pattern matching, smoke tests — 5× más barato que sonnet |
+| **opus** | `po-analyst`, `architect-reviewer`, `security-reviewer`, `final-auditor` | Complex reasoning, multiple sources, strategic judgment |
+| **sonnet** | `story-refiner`, `backend-developer`, `frontend-developer`, `code-reviewer`, `test-engineer` | Balanced implementation and review |
+| **haiku** | `deployment-verifier`, `pattern-detector`, `migration-reviewer`, `e2e-tester` | Mechanical checks, pattern matching, smoke tests — much cheaper than sonnet |
 
-Cambiar un modelo: editar `model:` en el frontmatter del agente correspondiente
-y reiniciar Claude Code para que re-registre el subagente.
+Changing a model: edit `model:` in the corresponding agent's frontmatter
+and restart Claude Code so it re-registers the subagent.
 
 ---
 
-## Tooling del sistema Kuraka
+## Kuraka system tooling
 
-Scripts del vault (`~/Documents/Agentes/AgentesTrabajos/kuraka/`)
-que puedes llamar desde cualquier rama/repo:
+Scripts from the framework vault (`${KURAKA_VAULT}`) callable from any
+branch / repo:
 
 ### `mount-kuraka.sh`
 
-Monta el sistema Kuraka personal en el repo actual (rsync desde vault,
-actualiza `.gitignore`).
+Mounts the Kuraka system into the current repo (rsync from vault,
+updates `.gitignore`).
 
 ```bash
-bash ~/Documents/Agentes/AgentesTrabajos/kuraka/mount-kuraka.sh
-# o con alias en ~/.zshrc:
-alias mount-kuraka='bash ~/Documents/Agentes/AgentesTrabajos/kuraka/mount-kuraka.sh'
+bash ${KURAKA_VAULT}/mount-kuraka.sh
+# or with an alias in ~/.zshrc:
+alias mount-kuraka='bash ${KURAKA_VAULT}/mount-kuraka.sh'
 ```
 
 ### `validate-kuraka.sh`
 
-Valida frontmatter de agentes/skills y detecta referencias huérfanas. Corre
-antes de cada sesión nueva para confirmar que todo está consistente.
+Validates frontmatter of agents / skills and detects orphan references.
+Run before each new session to confirm everything is consistent.
 
 ```bash
-bash ~/Documents/Agentes/AgentesTrabajos/kuraka/validate-kuraka.sh
+bash ${KURAKA_VAULT}/validate-kuraka.sh
 ```
 
 ### `kuraka-inspect.py`
 
-Detector de stack para onboarding Brownfield. Escanea un repo y produce un
-JSON con backend/frontend/DB/testing/CI/containers detectados.
+Stack detector for Brownfield onboarding. Scans a repo and produces a
+JSON with backend / frontend / DB / testing / CI / containers detected.
 
 ```bash
-python3 ~/Documents/Agentes/AgentesTrabajos/kuraka/kuraka-inspect.py [dir]
-# JSON a stdout, resumen humano a stderr
-# Redirige a fichero si quieres persistir:
-python3 ~/.../kuraka-inspect.py > inspect-report.json
+python3 ${KURAKA_VAULT}/kuraka-inspect.py [dir]
+# JSON to stdout, human summary to stderr
+# Redirect to file to persist:
+python3 ${KURAKA_VAULT}/kuraka-inspect.py > inspect-report.json
 ```
 
-El agente `amauta` lee este JSON como input principal en el modo Brownfield.
+The `amauta` agent reads this JSON as its main input in Brownfield mode.
 
 ### `aggregate-telemetry.py`
 
-Lee todos los JSON de `docs/process/agent-telemetry/` y emite un dashboard
-Markdown agregado (per-cycle, per-agent, tokens/uso, flags over-budget).
+Reads all JSONs from
+`${architecture.paths.docs_process_root}/agent-telemetry/` and emits an
+aggregated Markdown dashboard (per-cycle, per-agent, tokens / usage,
+over-budget flags).
 
 ```bash
-python3 ~/Documents/Agentes/AgentesTrabajos/kuraka/aggregate-telemetry.py
-# produce: docs/process/agent-telemetry/DASHBOARD.md
+python3 ${KURAKA_VAULT}/aggregate-telemetry.py
+# produces: ${architecture.paths.docs_process_root}/agent-telemetry/DASHBOARD.md
 ```
 
-El [[final-auditor]] (Phase 7) DEBE correrlo antes de escribir el RETRO para
-tener datos agregados, no solo los del ciclo actual.
+The `final-auditor` (Phase 7) MUST run it before writing the RETRO to
+have aggregated data, not just from the current cycle.
 
 ### `tests/kuraka/`
 
-Suite de tests estructurales del sistema. Corre tras cualquier cambio en
-`.claude/agents/` o `.claude/skills/`:
+Structural test suite for the system. Run after any change in
+`.claude/agents/` or `.claude/skills/`:
 
 ```bash
-cd sie_v2 && python3 -m pytest tests/kuraka/ -v
+python3 -m pytest tests/kuraka/ -v
 ```
 
-Valida: frontmatter, model routing, kuraka split, output-schemas cobertura,
-sin referencias huérfanas a [[workflow]].
+Validates: frontmatter, model routing, kuraka split, output-schemas
+coverage, no orphan references.
 
 ---
 
-## Optimizaciones aplicables en cualquier modo
+## Optimizations applicable in any mode
 
-Ver `rules/17-kuraka-token-optimizations.md` para los patrones T1–T5:
+See `rules/17-kuraka-token-optimizations.md` for patterns T1–T5:
 
-- **T1 Context digest** — el orquestador lee ficheros de referencia una vez y los inyecta como snippets en los prompts
-- **T2 End-only verification** — para restyles/mecánicos, typecheck/lint solo al final
-- **T3 Phase collapse** — combinar Phase 1+2 en un solo subagente para riesgo bajo
-- **T4 Mapping-table stories** — AC compactas tipo tabla para patrones de sustitución
-- **T5 No auto-verify** — el orquestador verifica, el agente no
+- **T1 Context digest** — the orchestrator reads reference files once
+  and injects them as snippets in prompts.
+- **T2 End-only verification** — for restyles / mechanical changes,
+  typecheck / lint only at the end.
+- **T3 Phase collapse** — combine Phase 1+2 into a single subagent for
+  low-risk changes.
+- **T4 Mapping-table stories** — compact AC as tables for substitution
+  patterns.
+- **T5 No auto-verify** — the orchestrator verifies, the agent doesn't.
 
-Aplicación estimada: −35% sobre baseline de un ciclo UI-only; hasta −60% si
-además se aplican mejoras de infraestructura (model routing, agent registration).
+Estimated impact: −35% on baseline for a UI-only cycle; up to −60% if
+combined with infrastructure improvements (model routing, agent
+registration).

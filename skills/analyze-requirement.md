@@ -1,57 +1,80 @@
 ---
 name: analyze-requirement
 description: "Analyze a Jira ticket or raw requirement and produce a structured REQ document. Used by po-analyst agent in Phase 1 of the workflow."
-agent: "[[po-analyst]]"
+agent: "`po-analyst`"
 phase: "1 — see `kuraka`"
 ---
 
 # Analyze Requirement
 
-You are executing the PO Analysis skill for the SIE v2 development workflow.
+You are executing the PO Analysis skill (Phase 1 of the workflow) for the
+project described in `kuraka.config.yaml`.
 
 ## Input
 
 The user provides either:
-- A Jira ticket key (e.g., DD-755) with description
-- A raw requirement text
+
+- A Jira ticket key (or equivalent ticket identifier) with description.
+- A raw requirement text.
 
 ## Steps
 
-### 1. Gather Context
+### 1. Gather context
 
-Read these files to understand the project:
-- `sie_v2/.claude/CLAUDE.md`
-- `sie_v2/.claude/rules/04-backend-architecture.md`
-- `sie_v2/.claude/rules/06-project-structure.md`
+Read in this order (the `po-analyst` agent's Context section describes
+the full loading sequence):
 
-### 2. Analyze the Requirement
+1. `kuraka.config.yaml` — project root.
+2. `.claude/stack-profiles/${stack.backend.framework}.md` — for layer
+   responsibilities and idiomatic file paths.
+3. `.claude/project/conventions/*.md` — team conventions (architecture,
+   tenant isolation, etc.).
+4. `.claude/project/glossary.md` if present — domain vocabulary.
+5. `.claude/project/lessons-learned/*.md` filtered by `applies_to`
+   including `po-analyst`.
+
+### 2. Analyze the requirement
 
 Identify:
-- **What** needs to be built (features, endpoints, UI)
-- **Where** it fits in the architecture (which layers, modules)
-- **What tables** are needed (compare against Jira ticket)
-- **What endpoints** are needed
-- **What services/repositories** are affected
-- **What risks** exist
 
-### 3. Produce REQ Document
+- **What** needs to be built (features, endpoints, UI).
+- **Where** it fits in the architecture (which layers per
+  `architecture.layers`, which modules).
+- **What tables** are needed (compare against the ticket).
+- **What endpoints** are needed.
+- **What services / repositories / equivalents** are affected.
+- **What risks** exist.
 
-Create the file at `sie_v2/docs/process/REQ-{YYYYMMDD}-{ticket}-{slug}.md` using the template from the po-analyst agent definition.
+### 3. Produce REQ document
 
-### 4. Table Inventory Validation
+Create the file at
+`${architecture.paths.docs_process_root}/REQ-{YYYYMMDD}-{ticket}-{slug}.md`
+using the template from the `po-analyst` agent definition.
+
+### 4. Table inventory validation
 
 For EVERY table you propose:
-- Is it mentioned in the Jira ticket? Mark "Yes"
-- If NOT in Jira, provide explicit justification or remove it
-- Include the action: CREATE, ALTER, or NONE (reference only)
 
-### 5. Scope Boundary
+- Is it mentioned in the ticket? Mark "Yes".
+- If NOT in the ticket, provide explicit justification or remove it.
+- Include the action: CREATE, ALTER, or NONE (reference only).
+- If `conventions.multi_tenant: true`, classify each table as
+  tenant-scoped (yes/no) with justification for any "no".
+
+### 5. Scope boundary
 
 Be explicit about what is IN scope and OUT of scope. Common mistakes:
-- Adding auth/user tables when the ticket doesn't mention them
-- Adding catalog/lookup tables when enums suffice
-- Proposing tables from other tickets
 
-### 6. Present to User
+- Adding auth / user tables when the ticket doesn't mention them.
+- Adding catalog / lookup tables when enums would suffice.
+- Proposing tables from other tickets.
+
+### 6. Project-specific checks
+
+Execute every check in `.claude/project/review-checks/po-analyst.md`
+if it exists. These may include provider directory enumeration,
+mailbox conventions, PII inventory cross-references, etc.
+
+### 7. Present to user
 
 Show the REQ and ask for approval before proceeding to Phase 2.

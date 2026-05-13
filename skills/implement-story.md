@@ -1,98 +1,95 @@
 ---
 name: implement-story
-description: "Implement a single approved user story following 4-layer architecture. Creates models, schemas, repositories, services, endpoints, and migrations as needed. Used in Phase 4."
-agent: "[[backend-developer]]"
+description: "Implement a single approved user story following the stack's idiomatic architecture. Creates models, schemas, repositories, services, endpoints, and migrations as needed. Used in Phase 4."
+agent: "`backend-developer` (or `frontend-developer` for frontend stories)"
 phase: "4 — see `kuraka`"
 ---
 
 # Implement Story
 
-You are executing the Story Implementation skill (Phase 4 of the workflow).
+You are executing the Story Implementation skill (Phase 4 of the workflow)
+for the project described in `kuraka.config.yaml`.
 
 ## Input
 
-A single approved story file from `sie_v2/docs/process/stories/{ticket}-S{N}.md`.
+A single approved story file from
+`${architecture.paths.docs_process_root}/stories/{ticket}-S{N}.md`.
 
 ## Pre-flight Checks
 
 Before writing ANY code:
-1. Read the story file completely
-2. Verify it was approved by Tech Lead (Phase 3)
-3. Check for stale terminology (compare against latest user corrections)
-4. If story references deprecated names, STOP and report
+
+1. Read the story file completely.
+2. Verify it was approved by `architect-reviewer` (Phase 3).
+3. Check for stale terminology (compare against latest user corrections).
+4. If the story references deprecated names → STOP and report.
 
 ## Implementation Order
 
-Always implement in this order (bottom-up):
+Follow the implementation order specified in the stack profile for
+`${stack.backend.framework}` (or `${stack.frontend.framework}` for
+frontend stories). The profile defines the file order and idiomatic paths.
 
-### Step 1: Migration (if schema changes)
-```
-migrations/versions/{YYYYMMDD}_{NNNN}_{description}.py
-```
-- Run: `cd sie_v2 && python -m alembic upgrade head`
+For example, with the `python-fastapi` profile:
 
-### Step 2: Models (SQLAlchemy)
-```
-api/models/{module}/{model}.py
-```
-- Include tenant_id
-- Use Enums for status fields
-- English names only
+1. Migration (if schema changes).
+2. Models.
+3. Schemas (Pydantic).
+4. Repository.
+5. Service.
+6. Endpoint.
 
-### Step 3: Schemas (Pydantic)
-```
-api/schemas/{module}/{schema}.py
-```
-- Create, Update, Response variants
-- `str | None` not `Optional[str]`
+For Vue/Pinia (`vue-pinia` profile):
 
-### Step 4: Repository
-```
-repositories/{module}/{repository}.py
-```
-- ONLY queries, no business logic
-- Filter by tenant_id in ALL queries
+1. Types.
+2. Services.
+3. Stores.
+4. Composables.
+5. Components.
 
-### Step 5: Service
-```
-api/services/{module}/{service}.py
-```
-- Business logic here
-- Call repositories, never DB
-- No try/except (let exceptions propagate)
+Adapt to the actual stack profile in use.
 
-### Step 6: Endpoint
-```
-api/endpoints/{module}/{endpoint}.py
-```
-- HTTP handling only, delegate to service
-- No try/except
-- No business logic
+## After EACH file
 
-### After EACH file:
 ```bash
-cd sie_v2 && ruff check .
+${stack.backend.lint_cmd}     # or ${stack.frontend.lint_cmd} for frontend
 ```
 
-### After ALL steps:
+Run from the project root. For frontend, also run
+`${stack.frontend.typecheck_cmd}` immediately after editing type
+definition files.
+
+## After ALL steps in the story
+
 ```bash
-cd sie_v2 && make test
+${stack.backend.test_cmd}    # or ${stack.frontend.test_cmd}
 ```
 
 ## Constraints
 
-- Max 700 lines per file (split with orchestrator pattern if needed)
-- Max 50 lines per function (extract `_helpers`)
-- All imports at top of file
-- No commented-out code
-- No hardcoded values (enums, .env, DB config)
-- No magic strings
-- Use `python` not `python3`
+- Max LOC per file: `conventions.max_file_loc` (frontend may use
+  `max_frontend_file_loc` if defined).
+- Max LOC per function: `conventions.max_function_loc`.
+- All imports at top of file.
+- No commented-out code.
+- No hardcoded values — use enums (per `conventions.enums_for_states`),
+  environment variables, or DB config.
+- Null syntax matches `conventions.null_syntax`.
+- Identifier language matches `conventions.naming_language`.
+- Tenant scoping (if `conventions.multi_tenant: true`): include
+  `conventions.tenant_column_name` in every tenant-scoped query;
+  consult `.claude/project/conventions/tenant-isolation.md` if present
+  for the project's specific patterns.
+
+Stack-specific rules (e.g., "no try/except in endpoints" for FastAPI,
+"all `<script setup lang='ts'>`" for Vue) live in the stack profile and
+apply automatically.
 
 ## When Done
 
 Report:
-- Files created/modified
-- `ruff check .` result
-- `make test` result
-- Any issues found during implementation
+
+- Files created / modified.
+- `${stack.*.lint_cmd}` result.
+- `${stack.*.test_cmd}` result.
+- Any issues found during implementation.

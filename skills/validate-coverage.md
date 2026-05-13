@@ -1,78 +1,86 @@
 ---
 name: validate-coverage
-description: "Validate test coverage after generating tests. Runs ruff + pytest, identifies gaps, reports coverage metrics."
-agent: "[[test-engineer]]"
+description: "Validate test coverage after generating tests. Runs lint + tests, identifies gaps, reports coverage metrics."
+agent: "`test-engineer`"
 phase: "6 — see `kuraka`"
 ---
 
 # Validate Coverage
 
-After generating tests, validate they pass and cover the required scenarios.
+After generating tests, validate they pass and cover the required
+scenarios, for the project described in `kuraka.config.yaml`.
 
 ## Steps
 
-### 1. Lint Check
+### 1. Lint check
 
 ```bash
-cd sie_v2 && ruff check backend/tests/
+${stack.backend.lint_cmd}    # or ${stack.frontend.lint_cmd} for frontend tests
 ```
 
 Fix any issues before proceeding.
 
-### 2. Run Tests
+### 2. Run tests
 
 ```bash
-# Run only the new test file
-cd sie_v2 && make test-file F=test_new_scale_service
+# Run only the new test file (use the stack's single-file invocation idiom)
+# e.g., pytest path/to/test_file.py -v   for pytest
+#       vitest run path/to/file.spec.ts  for Vitest
 
-# Run full suite to check no regressions
-cd sie_v2 && make test
+# Run the full suite to check no regressions
+${stack.backend.test_cmd}    # or frontend equivalent
 ```
 
-### 3. Coverage Analysis
+### 3. Coverage analysis
 
-Check what's covered vs what's missing:
+Check what's covered vs what's missing. The layer names come from
+`architecture.layers`. Example layout for a typical backend cycle:
 
 | Layer | Must Cover | Check |
-|-------|-----------|-------|
-| **Models** | Columns, FKs, constraints, tenant_id | `test_tools_models_new_scale.py` |
-| **Repositories** | CRUD, pagination, tenant isolation | `test/unit/repositories/tools/new_scale/` |
-| **Services** | Business logic, state transitions, errors | `test/unit/services/tools/new_scale/` |
-| **Endpoints** | HTTP codes, auth, response shapes | `test/unit/tools/test_new_scale_endpoints.py` |
+|-------|------------|-------|
+| **Models** | Columns, FKs, constraints, tenant column (if multi-tenant) | Models test file |
+| **Repositories / Data access** | CRUD, pagination, tenant isolation | Repository test files |
+| **Services** | Business logic, state transitions, errors | Service test files |
+| **Endpoints / Routes** | HTTP codes, auth, response shapes | Endpoint test files |
 
-### 4. Gap Report
+Frontend equivalent: types, services, stores, composables, components.
+
+### 4. Gap report
 
 For each source file, verify:
 
 ```markdown
 | Source File | Test File | Tests | Happy | Error | Edge | Status |
 |-------------|-----------|-------|-------|-------|------|--------|
-| service.py | test_service.py | 12 | 4 | 5 | 3 | OK |
-| analyzer.py | test_analyzer.py | 8 | 2 | 4 | 2 | OK |
-| excel_writer.py | test_excel.py | 6 | 2 | 2 | 2 | OK |
-| endpoints | test_endpoints.py | 15 | 8 | 5 | 2 | OK |
+| {path}      | {path}    | N     | N     | N     | N    | OK / GAPS |
 ```
 
-### 5. Quality Checklist
+### 5. Quality checklist
 
-- [ ] All tests follow AAA pattern
-- [ ] Test names: `test_should_{action}_when_{condition}`
-- [ ] No `any` types in test code
-- [ ] Mocks properly scoped (no leaking between tests)
-- [ ] No hardcoded IDs (use fixtures/builders)
-- [ ] Each test is independent (no order dependency)
-- [ ] `ruff check` passes on all test files
-- [ ] `make test` green (all tests pass, including existing)
-- [ ] No print/console.log in tests (use pytest captures)
+- [ ] All tests follow AAA pattern.
+- [ ] Test names follow the stack profile's idiom (e.g.,
+  `test_should_{action}_when_{condition}` for pytest).
+- [ ] No untyped helpers in typed stacks.
+- [ ] Mocks properly scoped (no leaking between tests).
+- [ ] No hardcoded IDs (use fixtures / builders).
+- [ ] Each test is independent (no order dependency).
+- [ ] `${stack.*.lint_cmd}` passes on all test files.
+- [ ] `${stack.*.test_cmd}` green (all tests pass, including existing).
+- [ ] No `print` / `console.log` in tests (use the test framework's
+  output capture).
 
-### 6. Coverage Targets
+### 6. Coverage targets
 
 | Layer | Target |
 |-------|--------|
-| Services | 80% line coverage |
-| Repositories | 80% line coverage |
-| Endpoints | 90% route coverage |
-| Models | 100% column/constraint coverage |
+| Services / business logic | 80% line coverage |
+| Repositories / data access | 80% line coverage |
+| Endpoints / routes | 90% route coverage |
+| Models | 100% column / constraint coverage |
+
+These are recommended defaults; the project may override in
+`.claude/project/conventions/test-coverage.md` if it has stricter
+targets.
 
 ### 7. Report
 
@@ -81,7 +89,7 @@ For each source file, verify:
 
 **Tests written:** N
 **Tests passing:** N
-**Ruff issues:** 0
+**Lint issues:** 0
 **Regression:** None
 
 ### By Layer
