@@ -16,7 +16,7 @@ If any requirement is missing, the output is invalid — re-generate before retu
 
 ## po-analyst (Phase 1)
 
-**Output file:** `sie_v2/docs/process/REQ-{YYYYMMDD}-{ticket}-{slug}.md`
+**Output file:** `${architecture.paths.docs_process_root}/REQ-{YYYYMMDD}-{ticket}-{slug}.md`
 
 **Required sections (in order):**
 
@@ -41,7 +41,7 @@ If any requirement is missing, the output is invalid — re-generate before retu
 
 ## story-refiner (Phase 2)
 
-**Output files:** `sie_v2/docs/process/stories/{ticket}-S{N}.md` (one per story)
+**Output files:** `${architecture.paths.docs_process_root}/stories/{ticket}-S{N}.md` (one per story)
 
 **Required sections per story:**
 
@@ -57,15 +57,15 @@ If any requirement is missing, the output is invalid — re-generate before retu
 
 **Validation checks:**
 - At least 3 acceptance criteria per story
-- All file paths match project structure (`api/`, `repositories/`, `tests/`)
-- No `Optional[Type]` — must be `Type | None`
-- No magic strings in AC — constants named explicitly
+- All file paths match the stack profile's idiomatic layout and `architecture.paths.*` from config
+- Null syntax matches `conventions.null_syntax`
+- No magic strings in AC — constants named explicitly (when `conventions.enums_for_states: true`)
 
 ---
 
 ## test-engineer — TEST_PLANNING mode (Phase 2.5)
 
-**Output file:** `sie_v2/docs/process/test-plans/TEST-PLAN-{ticket}.md`
+**Output file:** `${architecture.paths.docs_process_root}/test-plans/TEST-PLAN-{ticket}.md`
 
 **Required sections:**
 
@@ -101,7 +101,7 @@ If any requirement is missing, the output is invalid — re-generate before retu
 7. `## Schema Freeze Status` — checklist
 8. `## Confidence: HIGH / MEDIUM / LOW`
 
-**Also produces:** `sie_v2/docs/process/schemas/SCHEMA-FROZEN-{ticket}.md` if verdict is APPROVED.
+**Also produces:** `${architecture.paths.docs_process_root}/schemas/SCHEMA-FROZEN-{ticket}.md` if verdict is APPROVED.
 
 **Validation checks:**
 - Findings table has columns: #, Severity, Artifact, Description, Fix
@@ -118,14 +118,14 @@ If any requirement is missing, the output is invalid — re-generate before retu
 
 1. `## Files Created` — list
 2. `## Files Modified` — list with brief description
-3. `## Test Status` — `ruff check` result, `make test` result
+3. `## Test Status` — `${stack.backend.lint_cmd}` result, `${stack.backend.test_cmd}` result
 4. `## Stories Implemented` — checkmark list
 5. `## Confidence: HIGH / MEDIUM / LOW`
 
 **Validation checks:**
-- `ruff check .` MUST pass (no errors)
-- `make test` MUST pass (no failing tests)
-- Every story from the input has a corresponding checkmark
+- `${stack.backend.lint_cmd}` MUST pass (no errors). Frontend equivalents (`stack.frontend.*`) apply for frontend changes.
+- `${stack.backend.test_cmd}` MUST pass (no failing tests).
+- Every story from the input has a corresponding checkmark.
 
 ---
 
@@ -158,20 +158,20 @@ If any requirement is missing, the output is invalid — re-generate before retu
 
 1. `## Test Files Created` — list of paths
 2. `## Coverage vs Plan` — matches test plan from Phase 2.5? Yes/No + diff
-3. `## Test Execution` — `make test` output summary
-4. `## Ruff Check` — pass/fail
+3. `## Test Execution` — `${stack.backend.test_cmd}` output summary
+4. `## Lint Check` — `${stack.backend.lint_cmd}` pass/fail
 5. `## Confidence: HIGH / MEDIUM / LOW`
 
 **Validation checks:**
 - Every test case from TEST-PLAN-{ticket}.md has a corresponding test method
 - All imports at module top (no imports inside methods)
-- All test names follow `test_should_{action}_when_{condition}` pattern
+- Test names follow the stack profile's idiomatic naming (e.g., for pytest: `test_should_{action}_when_{condition}`)
 
 ---
 
 ## final-auditor (Phase 7)
 
-**Output file:** `sie_v2/docs/process/agent-retrospectives/RETRO-{REQ-name}.md`
+**Output file:** `${architecture.paths.docs_process_root}/agent-retrospectives/RETRO-{REQ-name}.md`
 
 **Required sections:**
 
@@ -180,7 +180,7 @@ If any requirement is missing, the output is invalid — re-generate before retu
 3. `## 3) Agent Findings` — one subsection per agent used
 4. `## 4) Systemic Issues`
 5. `## 5) Workflow Improvements`
-6. `## 6) Agent Prompt Patches` — specific files + exact text
+6. `## 6) Patches Proposed` — framework-prompt OR project-layer, with specific paths + exact text
 7. `## 7) Next-Requirement Guardrails`
 8. `## 8) Token & Latency Telemetry`
 9. `## Confidence: HIGH / MEDIUM / LOW`

@@ -460,6 +460,36 @@ Aplicar en bloque tras agents 1-9. Items ya cubiertos por las tablas A-F arriba.
 | 2026-05-12 | `po-analyst` + infra (stack-profiles, project-templates skeleton, migration-examples) | po-analyst worklist (11), C1.2, C2.2, C3.1, C3.4, F1, primer SP-PY | pending |
 | 2026-05-12 | `backend-developer` + extensión SP-PY | backend-developer worklist (12), F2; SP-PY +2 items (no try/except in services, rename anti-pattern) | pending |
 | 2026-05-12 | `code-reviewer` + `architect-reviewer` + `security-reviewer` (3 reviewers en bloque) | worklists 3 + 5 + 7, F4 + F5 + F6, C2.1 + C2.3 + C2.4, C3.2 + C3.5 | pending |
+| 2026-05-12 | **Resto de Fase 3 en bloque**: `test-engineer`, `story-refiner`, `frontend-developer`, `migration-reviewer`, `e2e-tester`, `deployment-verifier`, `pattern-detector`, `final-auditor`, `arki`, `inti`, `amauta` (11 agentes) + 8 context files + **`output-schemas.md` cleanup** | Worklists 4, 6, 8, 9, 10, 11, 12, 13, 14, 15, 16; F3, F7, F8, F9, F10, F11, F12, F13, F14; SP-VUE creado (`vue-pinia.md`); C1.5 (`frontend-branding.md`) creado; bonus PL files: `test-fixtures.md`, `LL-004-out-of-scope-respect.md`, `review-checks/migration-reviewer.md`. | pending |
+
+## Fase 3 ✅ CERRADA
+
+Todos los 16 agentes refactorizados. **0 menciones de sie_v2/Guai en
+`agents/*.md` ni en `agents/contexts/*.md`**.
+
+Estado final de los artifacts:
+
+- **16 agentes**: identidad genérica, paths/commands via config (`${stack.*}`,
+  `${architecture.paths.*}`, `${conventions.*}`).
+- **14 context files**: retemplados con loading order de capas
+  (config → stack profile → project layer → artifacts).
+- **2 stack profiles**: `python-fastapi.md` (extendido con 4 items),
+  `vue-pinia.md` (nuevo).
+- **Project layer materials para sie_v2** (en `kuraka-artifacts/migration-examples/sie_v2-project-layer/`):
+  - `conventions/`: `tenant-isolation.md`, `frontend-branding.md`, `test-fixtures.md`.
+  - `review-checks/`: `po-analyst.md`, `code-reviewer.md`, `architect-reviewer.md`, `security-reviewer.md`, `migration-reviewer.md`.
+  - `lessons-learned/`: `LL-001`, `LL-002`, `LL-004`, `LL-DD-896-FM-01`, `LL-DD-896-FM-02`.
+  - READMEs orientativos.
+
+Items diferidos a Fase 5 (workflow restructure):
+
+- Split `code-reviewer` → `code-reviewer-mechanic` (haiku) + `code-reviewer-judgment` (sonnet).
+- Renombrar `Normal` → `Compliance` y `Standard` como default.
+
+Items diferidos a Fase 4 (notation cleanup):
+
+- Conversión total wikilinks → backticks en archivos remanentes.
+- Eliminación de `scripts/sync-obsidian.sh`.
 
 Infraestructura nueva creada en este turno (no estaba prevista como item individual del inventario pero queda registrada):
 
