@@ -109,6 +109,13 @@ if [ -d "$ARTIFACTS_SRC" ]; then
             "$ARTIFACTS_SRC/tests/kuraka/" "tests/kuraka/"
         echo "   ✓ tests/kuraka/"
     fi
+
+    # stack-profiles/ — framework-supplied per-stack guidance (read by agents)
+    if [ -d "$ARTIFACTS_SRC/stack-profiles" ]; then
+        mkdir -p ".claude/stack-profiles"
+        rsync -a --update "$ARTIFACTS_SRC/stack-profiles/" ".claude/stack-profiles/"
+        echo "   ✓ stack-profiles/"
+    fi
 fi
 
 # --- ensure .gitignore excludes personal content ---
