@@ -139,10 +139,10 @@ Todo lo que se va al `<sie_v2>/.claude/project/`. Acá se preserva la memoria op
 
 Checklists ejecutables por agente, project-specific.
 
-- [ ] **C2.1** `code-reviewer.md` — "Cache Invalidation Checks (CRITICAL)" actual de `code-reviewer.md:51-60` (patrón sub-keys de Redis). Cargado por `code-reviewer` cuando trabaja en sie_v2.
+- [x] **C2.1** `code-reviewer.md` ✅ — creado en `migration-examples/sie_v2-project-layer/review-checks/code-reviewer.md`. 2 checks: cache invalidation namespace coverage + audit log presence. (Refactor code-reviewer.)
 - [x] **C2.2** `po-analyst.md` ✅ — creado en `migration-examples/sie_v2-project-layer/review-checks/po-analyst.md`. 3 checks: provider directory full file coverage, mailbox/contract convention validation, tenant strategy explicit per table. (Refactor po-analyst.)
-- [ ] **C2.3** `security-reviewer.md` — los `grep -rn` específicos de `security-reviewer.md:49-80` (passwords, api_key, secret, BEGIN RSA, tenant_id en repositories, @router auth). El **patrón** queda genérico en el agente; los **comandos exactos** (con paths sie_v2) van acá.
-- [ ] **C2.4** `architect-reviewer.md` — "Estructura propuesta espeja a ≥1 provider existente" (line 121). + check "comando ejecutable + convención" (line 122). + check Alembic data migration vs SQL seeds (line 126).
+- [x] **C2.3** `security-reviewer.md` ✅ — creado en `migration-examples/sie_v2-project-layer/review-checks/security-reviewer.md`. 6 checks: secret scanning con paths sie_v2 (backend/, frontend/src/, providers/), tenant isolation audit, FastAPI route auth grep, PII inventory cross-check, provider webhook signature verification, encrypted-at-rest columns. (Refactor security-reviewer.)
+- [x] **C2.4** `architect-reviewer.md` ✅ — creado en `migration-examples/sie_v2-project-layer/review-checks/architect-reviewer.md`. 2 checks: pattern parity (4 sub-checks: migrations with data, seed files, directory structure, executable command) + cross-provider naming/ID conventions. Con BLOCKER text en español preservado. (Refactor architect-reviewer.)
 - [ ] **C2.5** `migration-reviewer.md` — el check de SQL seeds vs alembic data (line 47-49).
 - [ ] **C2.6** `test-engineer.md` — verify tenant isolation tests (line 144).
 
@@ -151,10 +151,10 @@ Checklists ejecutables por agente, project-specific.
 Cada lección en su archivo con frontmatter `applies_to`.
 
 - [x] **C3.1** `LL-001-symbol-removal.md` ✅ — creado en `migration-examples/sie_v2-project-layer/lessons-learned/`. Frontmatter `applies_to: [po-analyst, architect-reviewer]`. (Refactor po-analyst.)
-- [ ] **C3.2** `LL-002-cache-invalidation.md` — referenciada en `code-reviewer.md:60`. `applies_to: [code-reviewer, backend-developer]`.
+- [x] **C3.2** `LL-002-cache-invalidation.md` ✅ — creado en `migration-examples/sie_v2-project-layer/lessons-learned/`. Frontmatter `applies_to: [code-reviewer, backend-developer]`. (Refactor code-reviewer.)
 - [ ] **C3.3** `LL-004-test-engineer-rule.md` — referenciada en `test-engineer.md:57`. `applies_to: [test-engineer]`.
 - [x] **C3.4** `LL-DD-896-FM-01-provider-file-coverage.md` ✅ — creado en `migration-examples/sie_v2-project-layer/lessons-learned/`. Frontmatter `applies_to: [po-analyst]`. (Refactor po-analyst.)
-- [ ] **C3.5** `LL-DD-896-FM-02-alembic-vs-seeds.md` — referenciada en `migration-reviewer.md:49` y `architect-reviewer.md:126`. `applies_to: [migration-reviewer, architect-reviewer]`.
+- [x] **C3.5** `LL-DD-896-FM-02-alembic-vs-seeds.md` ✅ — creado en `migration-examples/sie_v2-project-layer/lessons-learned/`. Frontmatter `applies_to: [architect-reviewer, migration-reviewer]`. (Refactor architect-reviewer.)
 - [ ] **C3.6** `LL-DD-896-FM-04-orchestrator-bypass.md` — referenciada en `kuraka-policies.md:89`. `applies_to: [orchestrator, kuraka]`.
 - [ ] **C3.7** `LL-DD-896-IS-05-smoke-test.md` — referenciada en `kuraka.md:190,232`. La **regla derivada** (smoke test antes de cerrar ciclo) es genérica y queda en `kuraka.md`; la **referencia al incidente** va acá.
 - [ ] **C3.8** `LL-DD-896-S1-bug-detection.md` — referenciada en `rules/17:200`. `applies_to: [code-reviewer, test-engineer]`.
@@ -222,9 +222,9 @@ Items:
 - [x] **F1** `agents/contexts/po-analyst-rules.md` ✅ — retemplatado con loading order (config → stack profile → project layer → output schema). 0 referencias a sie_v2. (Refactor po-analyst.)
 - [x] **F2** `agents/contexts/backend-developer-rules.md` ✅ — retemplatado con loading order de 5 secciones (config + stack profile required + project layer + story file + output schema). 0 referencias a sie_v2. (Refactor backend-developer.)
 - [ ] **F3** `agents/contexts/frontend-developer-rules.md` — retemplatear (9 líneas)
-- [ ] **F4** `agents/contexts/code-reviewer-rules.md` — retemplatear (20 líneas)
-- [ ] **F5** `agents/contexts/security-reviewer-rules.md` — retemplatear (7 líneas)
-- [ ] **F6** `agents/contexts/architect-reviewer-rules.md` — retemplatear (17 líneas)
+- [x] **F4** `agents/contexts/code-reviewer-rules.md` ✅ — retemplatado. 0 sie_v2. (Refactor code-reviewer.)
+- [x] **F5** `agents/contexts/security-reviewer-rules.md` ✅ — retemplatado. 0 sie_v2. (Refactor security-reviewer.)
+- [x] **F6** `agents/contexts/architect-reviewer-rules.md` ✅ — retemplatado. 0 sie_v2. (Refactor architect-reviewer.)
 - [ ] **F7** `agents/contexts/test-engineer-rules.md` — retemplatear (12 líneas)
 - [ ] **F8** `agents/contexts/e2e-tester-rules.md` — retemplatear (7 líneas)
 - [ ] **F9** `agents/contexts/deployment-verifier-rules.md` — retemplatear (7 líneas)
@@ -280,16 +280,18 @@ Orden por dependencia, no por dificultad. Cada agente = un commit aislado en Fas
 - En "Architecture invariants": "No try/except in services either" (rationale separado del de endpoints).
 - En "Anti-patterns flagged by reviewers": "Renaming an entity without updating string-based references" (Alembic data migrations, scripts, JSON/YAML configs).
 
-### 3. `code-reviewer.md`
+### 3. `code-reviewer.md` ✅ COMPLETADO (commit pendiente)
 
-- [ ] Línea 8 — identidad → GEN-KEEP
-- [ ] Líneas 37-49 — Architecture checklist: separar universal (no commented code, file size, imports al top) de stack (no try/except in endpoints — eso es FastAPI; depende del stack) → genérico + SP-PY
-- [ ] Línea 41 — "Layers not skipped (Endpoint→Service→...)" → leer de `architecture.layers` del config
-- [ ] Línea 46 — `Type | None` instead of `Optional[Type]` → CFG (A11)
-- [ ] Líneas 47-48 — `ruff check .` / `make test` → CFG (A1, A2)
-- [ ] Líneas 50-60 — "Cache Invalidation Checks (CRITICAL)" → PL-RC (C2.1) + PL-LL (C3.2)
-- [ ] Considerar split en `code-reviewer-mechanic` (haiku) + `code-reviewer-judgment` (sonnet) según Fase 5
-- [ ] Commit: "Refactor code-reviewer: extract cache-invalidation to project layer"
+- [x] Línea 8 — identidad → GEN-KEEP. Ahora: "for the project described in `kuraka.config.yaml`".
+- [x] Líneas 37-49 — Architecture checklist separado en (a) Universal (queda en agente con referencias a CFG: `max_file_loc`, `max_function_loc`, `null_syntax`, `enums_for_states`, `naming_language`, `${stack.backend.lint_cmd}`, `${stack.backend.test_cmd}`) y (b) Stack-specific delegado a "Stack-specific architecture checks" que cita el stack profile.
+- [x] Línea 41 — "Layers not skipped" → instrucción ahora dice "Apply every architecture invariant from the stack profile for `${stack.backend.framework}`", que enforza `architecture.layers` del config.
+- [x] Línea 46 — `Type | None` vs `Optional[Type]` → CFG (A11). Ahora referencia `conventions.null_syntax`.
+- [x] Líneas 47-48 — `ruff check .` / `make test` → CFG (A1, A2). Ahora `${stack.backend.lint_cmd}` / `test_cmd`.
+- [x] Líneas 50-60 — "Cache Invalidation Checks (CRITICAL)" → ELIMINADO del agente. Movido íntegro a `review-checks/code-reviewer.md` (PL-RC C2.1) + `lessons-learned/LL-002-cache-invalidation.md` (PL-LL C3.2).
+- [x] Output Format example: ejemplos con paths concretos `service.py:42 — db.query() used directly` reemplazados por placeholders `<file>:<line>`.
+- [ ] Considerar split en `code-reviewer-mechanic` (haiku) + `code-reviewer-judgment` (sonnet) según Fase 5 — diferido a Fase 5.
+- [x] Sección Context actualizada con loading order de 4 capas (config → stack profile → project layer → artifacts under review).
+- [ ] Commit: "Refactor code-reviewer + architect-reviewer + security-reviewer" (pending user instruction).
 
 ### 4. `frontend-developer.md`
 
@@ -305,14 +307,18 @@ Orden por dependencia, no por dificultad. Cada agente = un commit aislado en Fas
 - [ ] Líneas 116-117 — `ruff check` → `npm run lint` mapping → ya cubierto por CFG (A1 vs A3)
 - [ ] Commit: "Refactor frontend-developer: extract Vue/Pinia to stack profile, Guai branding to project layer"
 
-### 5. `architect-reviewer.md`
+### 5. `architect-reviewer.md` ✅ COMPLETADO (commit pendiente)
 
-- [ ] Línea 8 — identidad → GEN-KEEP
-- [ ] Líneas 32-36, 77 — checklist con tenant_id, `Optional[Type]`, paths sie_v2 → CFG (A10, A11) + leer de `architecture.paths`
-- [ ] Línea 35 — "File paths match project structure (api/, repositories/)" → leer de CFG
-- [ ] Líneas 43, 113 — TypeScript precision rule → SP-VUE (o profile TS genérico)
-- [ ] Líneas 121-126 — "Estructura espeja a ≥1 provider existente", check Alembic vs seeds → PL-RC (C2.4) + PL-LL (C3.5)
-- [ ] Commit
+- [x] Línea 8 — identidad → GEN-KEEP. Ahora: "for the project described in `kuraka.config.yaml`".
+- [x] Línea 12 — "Phase 3 (Tech Lead Review — Stories + Test Plan)" → "Phase 3 (Architect Review — Stories + Test Plan)".
+- [x] Líneas 32-36, 77 — Story checklist: todos los items con tenant_id, Optional[Type], paths reescritos para referenciar CFG (`conventions.multi_tenant`, `conventions.tenant_column_name`, `conventions.null_syntax`, `architecture.paths.*`) + stack profile.
+- [x] Línea 35 — "File paths match project structure" → ahora dice "match the stack profile's idiomatic layout and `architecture.paths.*`".
+- [x] Línea 41 — "Migration naming follows convention" → referencia stack profile + `stack.database.migration_tool`.
+- [x] Líneas 43, 113 — TypeScript precision rule mantenida en el agente pero etiquetada como "stack profile (TypeScript)" en la columna Source.
+- [x] Líneas 115-126 — Sección "Verificación de paridad con convenciones del proyecto" (4 checks sie_v2: migrations vs seeds, seed files, directory structure, executable command) → ELIMINADA del agente. Movida íntegro a `review-checks/architect-reviewer.md` (PL-RC C2.4) + `lessons-learned/LL-DD-896-FM-02-alembic-vs-seeds.md` (PL-LL C3.5).
+- [x] Schema freeze path → `${architecture.paths.docs_process_root}/schemas/...`
+- [x] Sección Context actualizada con loading order de 4 capas.
+- [ ] Commit: "Refactor code-reviewer + architect-reviewer + security-reviewer" (pending).
 
 ### 6. `test-engineer.md`
 
@@ -325,16 +331,19 @@ Orden por dependencia, no por dificultad. Cada agente = un commit aislado en Fas
 - [ ] Línea 144 — verify tenant isolation → CFG (A10) + PL-CONV (C1.2)
 - [ ] Commit
 
-### 7. `security-reviewer.md`
+### 7. `security-reviewer.md` ✅ COMPLETADO (commit pendiente)
 
-- [ ] Línea 8 — identidad → GEN-KEEP
-- [ ] Línea 34 — A01 entry con `tenant_id` → CFG (A10) + PL-CONV (C1.2)
-- [ ] Líneas 49-53 — grep secrets `sie_v2/backend/` → GEN-REWORD (patrones quedan, paths salen) + PL-RC (C2.3) para los específicos
-- [ ] Líneas 61-64, 68 — tenant checks → CFG (A10) + PL-RC
-- [ ] Línea 80 — grep `@router.*` → GEN-REWORD (depende del framework — SP-PY)
-- [ ] Línea 86 — SQLAlchemy column types → SP-PY
-- [ ] Línea 112 — finding example → reword sin paths sie_v2
-- [ ] Commit
+- [x] Línea 8 — identidad → GEN-KEEP. Ahora: "for the project described in `kuraka.config.yaml`".
+- [x] Línea 34 — A01 entry con `tenant_id` → reword genérico ("tenant scoping enforced on queries") + reference a CFG (`conventions.multi_tenant`) + project layer.
+- [x] Líneas 49-53 — Secret scanning greps `sie_v2/backend/` → reescritos para correr desde project root (usa `.` por default + reference a `--include` por language del CFG). Las versiones sie_v2-específicas con paths `backend/`, `frontend/src/` y provider configs → movidas a `review-checks/security-reviewer.md` (PL-RC C2.3).
+- [x] Líneas 61-64, 68 — Tenant Isolation Audit reescrito: condicionado a `conventions.multi_tenant: true`, usa `conventions.tenant_column_name`, referencia `.claude/project/conventions/tenant-isolation.md`.
+- [x] Línea 80 — grep `@router.*` → GEN-REWORD ("the framework's auth dependency mechanism — see the stack profile"). Comando exacto sie_v2 va a PL-RC C2.3.
+- [x] Línea 86 — SQLAlchemy column types → reword "ORM column types or framework equivalent" (delegado al stack profile).
+- [x] Línea 112 — finding example → placeholders `<file>:<line>`.
+- [x] GDPR section reescrita: referencia `.claude/project/conventions/pii-inventory.md` (project layer) en lugar de asumir formato sie_v2.
+- [x] Sección Context actualizada con loading order de 4 capas.
+- [x] Rules 3 — "Tenant isolation is non-negotiable" → condicionado a `conventions.multi_tenant: true`.
+- [ ] Commit: "Refactor code-reviewer + architect-reviewer + security-reviewer" (pending).
 
 ### 8. `migration-reviewer.md`
 
@@ -450,6 +459,7 @@ Aplicar en bloque tras agents 1-9. Items ya cubiertos por las tablas A-F arriba.
 |---|---|---|---|
 | 2026-05-12 | `po-analyst` + infra (stack-profiles, project-templates skeleton, migration-examples) | po-analyst worklist (11), C1.2, C2.2, C3.1, C3.4, F1, primer SP-PY | pending |
 | 2026-05-12 | `backend-developer` + extensión SP-PY | backend-developer worklist (12), F2; SP-PY +2 items (no try/except in services, rename anti-pattern) | pending |
+| 2026-05-12 | `code-reviewer` + `architect-reviewer` + `security-reviewer` (3 reviewers en bloque) | worklists 3 + 5 + 7, F4 + F5 + F6, C2.1 + C2.3 + C2.4, C3.2 + C3.5 | pending |
 
 Infraestructura nueva creada en este turno (no estaba prevista como item individual del inventario pero queda registrada):
 

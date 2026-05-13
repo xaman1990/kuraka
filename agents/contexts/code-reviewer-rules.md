@@ -1,22 +1,74 @@
-# Code Reviewer - Required Rules
+# code-reviewer — Context Loading
 
-Read ONLY these rules before reviewing implemented code:
+Read these sources in order before reviewing implemented code. Later
+sources override earlier ones in case of conflict (most-specific wins).
 
-1. `sie_v2/.claude/CLAUDE.md` - Project conventions and stack
-2. `sie_v2/.claude/rules/01-solid-principles.md` - SOLID principles
-3. `sie_v2/.claude/rules/02-clean-code.md` - Clean code, naming, early return, enums
-4. `sie_v2/.claude/rules/03-file-organization.md` - File size limits
-5. `sie_v2/.claude/rules/04-backend-architecture.md` - 4-layer architecture
-6. `sie_v2/.claude/rules/05-backend-conventions.md` - Naming, types, hardcoded values
-7. `sie_v2/.claude/rules/06-project-structure.md` - Monorepo structure
-8. `sie_v2/.claude/rules/08-testing.md` - Testing patterns
-9. `sie_v2/.claude/rules/10-code-review.md` - 6D review framework
-10. `sie_v2/.claude/rules/18-duplication-aware-refactor.md` - Detect duplicated logic across providers/modules and report it as finding under the MAINTAINABILITY dimension of the 6D framework. Propose extraction as SUGGESTION with the standard format; do not demand it in-ticket.
+## 1. Project configuration (always)
 
-## Conditional (only if the code touches that domain)
+- `kuraka.config.yaml` at the project root.
 
-- `sie_v2/.claude/rules/07-providers.md` - Only if reviewing provider code
-- `sie_v2/.claude/rules/09-frontend-standards.md` - Only if reviewing frontend code
-- `sie_v2/.claude/rules/12-insurance-api-connector.md` - Only if reviewing insurance API integration
+Use:
 
-Do NOT read rules 11, 13, 14, 15, 16 — security (11) is handled by security-reviewer in Phase 5.5.
+- `stack.*` — language, framework, commands. Determines which stack
+  profile(s) to load.
+- `architecture.layers` — enforce "no skipping layers" and "no logic in
+  inner layers" on the reviewed code.
+- `architecture.paths.*` — assess "is this file in the right place".
+- `conventions.max_file_loc` / `max_function_loc` — file/function size
+  thresholds.
+- `conventions.null_syntax`, `naming_language`, `enums_for_states` —
+  style enforcement.
+
+## 2. Stack profile(s) (when present)
+
+- `.claude/stack-profiles/${stack.backend.framework}.md` — if reviewing
+  backend code.
+- `.claude/stack-profiles/${stack.frontend.framework}.md` — if reviewing
+  frontend code.
+
+Profiles define:
+
+- Per-layer rules (what logic goes where).
+- Anti-patterns to flag (with severity guidance).
+- Common pitfalls.
+
+If a profile is missing for the configured framework, flag this as a
+SUGGESTION finding so the team can contribute one back to the framework.
+
+## 3. Project specialization layer (when present)
+
+Read each in order:
+
+1. `.claude/project/conventions/*.md` — team-owned architecture and
+   convention overrides.
+2. `.claude/project/review-checks/code-reviewer.md` — operational checks
+   the project requires (cache invalidation, audit logs, custom
+   architecture rules). Treat as required.
+3. `.claude/project/lessons-learned/*.md` — read every file whose
+   frontmatter `applies_to` includes `code-reviewer`.
+4. `.claude/project/agents/code-reviewer.append.md` — if present, addendum.
+
+## 4. Artifacts under review (always, for the current cycle)
+
+- All code files modified or added by `backend-developer` /
+  `frontend-developer` in Phase 4.
+- The approved story files
+  (`${architecture.paths.docs_process_root}/stories/`).
+- The test plan
+  (`${architecture.paths.docs_process_root}/test-plans/`).
+
+## 5. Output schema (always, before returning)
+
+- `.claude/agents/contexts/output-schemas.md#code-reviewer` — your finding
+  report's required sections. The `verify-output` skill validates.
+
+## Loading rationale
+
+The framework prompt defines the role (6D review + universal checklist).
+The stack profile defines what counts as a violation in this stack.
+The project layer defines what counts as a violation in this codebase.
+The artifacts under review are the actual subject.
+
+Most-specific wins (project > stack > framework). If a project rule
+appears to relax a security/correctness rule, flag the conflict instead
+of silently picking.
