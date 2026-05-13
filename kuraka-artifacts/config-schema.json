@@ -1,0 +1,288 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kuraka.dev/schemas/config-schema-v1.json",
+  "title": "Kuraka project configuration",
+  "description": "Schema for kuraka.config.yaml — the per-project declarative config consumed by Kuraka agents. See config-schema.yaml (next to this file) for a documented, copy-and-edit template.",
+  "type": "object",
+  "required": ["schema_version", "project", "stack", "architecture", "conventions", "workflow"],
+  "additionalProperties": false,
+
+  "properties": {
+
+    "schema_version": {
+      "description": "Schema version this file conforms to. Bumped on breaking changes to the schema (SemVer MAJOR).",
+      "type": "integer",
+      "const": 1
+    },
+
+    "project": {
+      "type": "object",
+      "required": ["name", "description"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Slug-like project identifier (lowercase, hyphens).",
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "description": {
+          "description": "Short description of the project.",
+          "type": "string",
+          "minLength": 1
+        },
+        "repo_url": {
+          "description": "Optional. URL of the project's git repository.",
+          "type": "string"
+        }
+      }
+    },
+
+    "stack": {
+      "type": "object",
+      "additionalProperties": false,
+      "anyOf": [
+        { "required": ["backend"] },
+        { "required": ["frontend"] }
+      ],
+      "properties": {
+
+        "backend": {
+          "type": "object",
+          "required": ["language", "framework", "package_manager", "lint_cmd", "test_cmd"],
+          "additionalProperties": false,
+          "properties": {
+            "language": {
+              "description": "Backend language. Open enum — values not in the list are accepted with degraded behavior.",
+              "type": "string",
+              "examples": ["python", "typescript", "javascript", "go", "rust", "ruby", "java", "csharp", "php", "other"]
+            },
+            "framework": {
+              "description": "Backend framework. Open enum.",
+              "type": "string",
+              "examples": ["fastapi", "django", "flask", "starlette", "express", "nestjs", "koa", "hono", "gin", "echo", "fiber", "rails", "sinatra", "spring", "quarkus", "dotnet", "aspnet", "laravel", "symfony", "other"]
+            },
+            "package_manager": {
+              "type": "string",
+              "examples": ["pip", "poetry", "uv", "pipenv", "npm", "yarn", "pnpm", "bun", "cargo", "go-mod", "bundler", "maven", "gradle", "composer", "other"]
+            },
+            "orm": {
+              "description": "Optional. ORM or query builder.",
+              "type": ["string", "null"],
+              "examples": ["sqlalchemy", "django-orm", "prisma", "typeorm", "drizzle", "mongoose", "gorm", "sqlx", "diesel", "activerecord", "ecto", "other", "none"]
+            },
+            "lint_cmd": { "type": "string", "minLength": 1 },
+            "test_cmd": { "type": "string", "minLength": 1 },
+            "typecheck_cmd": { "type": ["string", "null"] },
+            "format_cmd": { "type": ["string", "null"] }
+          }
+        },
+
+        "frontend": {
+          "type": "object",
+          "required": ["language", "framework", "package_manager", "lint_cmd", "test_cmd", "typecheck_cmd"],
+          "additionalProperties": false,
+          "properties": {
+            "language": {
+              "type": "string",
+              "examples": ["typescript", "javascript"]
+            },
+            "framework": {
+              "type": "string",
+              "examples": ["vue", "react", "svelte", "angular", "nextjs", "nuxt", "sveltekit", "remix", "astro", "solid", "qwik", "other"]
+            },
+            "package_manager": {
+              "type": "string",
+              "examples": ["npm", "yarn", "pnpm", "bun"]
+            },
+            "state_mgmt": {
+              "description": "Optional. State management library.",
+              "type": ["string", "null"],
+              "examples": ["pinia", "vuex", "redux", "zustand", "jotai", "recoil", "mobx", "xstate", "signals", "none", "other"]
+            },
+            "lint_cmd": { "type": "string", "minLength": 1 },
+            "test_cmd": { "type": "string", "minLength": 1 },
+            "typecheck_cmd": { "type": "string", "minLength": 1 },
+            "format_cmd": { "type": ["string", "null"] }
+          }
+        },
+
+        "database": {
+          "description": "Optional. Omit if the project has no database.",
+          "type": "object",
+          "required": ["engine"],
+          "additionalProperties": false,
+          "properties": {
+            "engine": {
+              "type": "string",
+              "examples": ["postgres", "mysql", "mariadb", "sqlite", "mongodb", "redis", "dynamodb", "cassandra", "elasticsearch", "other"]
+            },
+            "migration_tool": {
+              "type": ["string", "null"],
+              "examples": ["alembic", "django-migrations", "prisma", "typeorm-migrations", "drizzle-kit", "flyway", "liquibase", "rails-migrations", "sqlx-cli", "goose", "other", "none"]
+            }
+          }
+        }
+      }
+    },
+
+    "architecture": {
+      "type": "object",
+      "required": ["layers", "paths"],
+      "additionalProperties": false,
+      "properties": {
+        "layers": {
+          "description": "Ordered list of layer names, from outermost (request entry) to innermost (data). Empty array means non-layered architecture (the project documents the pattern in <project>/.claude/project/conventions/architecture.md).",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_-]*$",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "paths": {
+          "type": "object",
+          "required": ["tests_root", "docs_process_root"],
+          "additionalProperties": false,
+          "properties": {
+            "backend_root": {
+              "description": "Required if stack.backend is present. Trailing slash, no leading slash.",
+              "type": "string",
+              "pattern": "^[^/].*/$"
+            },
+            "frontend_root": {
+              "description": "Required if stack.frontend is present.",
+              "type": "string",
+              "pattern": "^[^/].*/$"
+            },
+            "tests_root": {
+              "type": "string",
+              "pattern": "^[^/].*/$"
+            },
+            "migrations_root": {
+              "description": "Required if stack.database.migration_tool is set.",
+              "type": "string",
+              "pattern": "^[^/].*/$"
+            },
+            "docs_process_root": {
+              "type": "string",
+              "pattern": "^[^/].*/$"
+            }
+          }
+        }
+      }
+    },
+
+    "conventions": {
+      "type": "object",
+      "required": ["naming_language", "null_syntax", "multi_tenant", "enums_for_states", "max_file_loc", "max_function_loc"],
+      "additionalProperties": false,
+      "properties": {
+        "naming_language": {
+          "description": "Language used for identifiers.",
+          "type": "string",
+          "enum": ["english", "spanish", "other"]
+        },
+        "null_syntax": {
+          "type": "string",
+          "enum": ["T | None", "Optional[T]"]
+        },
+        "multi_tenant": { "type": "boolean" },
+        "tenant_column_name": {
+          "description": "Column name used for tenant scoping. Required when multi_tenant is true.",
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "enums_for_states": { "type": "boolean" },
+        "max_file_loc": {
+          "type": "integer",
+          "minimum": 50,
+          "maximum": 5000
+        },
+        "max_function_loc": {
+          "type": "integer",
+          "minimum": 5,
+          "maximum": 500
+        },
+        "max_frontend_file_loc": {
+          "type": ["integer", "null"],
+          "minimum": 50,
+          "maximum": 5000
+        }
+      },
+      "if": { "properties": { "multi_tenant": { "const": true } }, "required": ["multi_tenant"] },
+      "then": { "required": ["tenant_column_name"] }
+    },
+
+    "workflow": {
+      "type": "object",
+      "required": ["default_mode", "gates_require_user_approval", "parallel_implementation"],
+      "additionalProperties": false,
+      "properties": {
+        "default_mode": {
+          "type": "string",
+          "enum": ["standard", "compliance", "lite"]
+        },
+        "gates_require_user_approval": { "type": "boolean" },
+        "parallel_implementation": { "type": "boolean" }
+      }
+    }
+  },
+
+  "allOf": [
+    {
+      "if": {
+        "properties": { "stack": { "required": ["backend"] } },
+        "required": ["stack"]
+      },
+      "then": {
+        "properties": {
+          "architecture": {
+            "properties": {
+              "paths": { "required": ["backend_root"] }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "stack": { "required": ["frontend"] } },
+        "required": ["stack"]
+      },
+      "then": {
+        "properties": {
+          "architecture": {
+            "properties": {
+              "paths": { "required": ["frontend_root"] }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "stack": {
+            "properties": {
+              "database": { "required": ["migration_tool"] }
+            },
+            "required": ["database"]
+          }
+        },
+        "required": ["stack"]
+      },
+      "then": {
+        "properties": {
+          "architecture": {
+            "properties": {
+              "paths": { "required": ["migrations_root"] }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

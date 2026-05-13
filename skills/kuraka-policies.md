@@ -68,6 +68,26 @@ Para prevenir loops descontrolados:
 
 Si un agente excede su límite sin producir output → tratar como timeout.
 
+### Política frente a rate limits durante Phase 4
+
+El orquestador **NO** debe escribir código de implementación bajo ninguna circunstancia. Si el subagente implementador (`backend-developer`, `frontend-developer`, `test-engineer`) está rate-limited:
+
+1. **Primera opción** — `ScheduleWakeup` con delay basado en duración estimada del rate limit:
+   - Mensaje "rate limited, retry in N minutes" → `ScheduleWakeup(delaySeconds=N*60+30, ...)` con prompt que reanude la story exacta.
+2. **Segunda opción** — degradar a un agente alternativo: si el bloqueo es solo de un modelo específico, intentar `simplify` o un agente de menor coste para tareas mecánicas (reducir scope a copy-paste con citas exactas).
+3. **Excepción documentada** — el orquestador puede escribir SOLO en estos casos, anunciando primero al usuario:
+   - Edits ≤ 5 LOC para fix puntual de un IMPORTANT post-review
+   - Refactor mecánico de una migration ya escrita (cambio de patrón sin nueva lógica)
+   - **NUNCA** un archivo nuevo de >50 LOC
+
+Si el orquestador escribe código fuera de las excepciones, debe:
+- Anunciar la violación al usuario antes
+- Pedir aprobación explícita
+- Disparar un re-review obligatorio del agente que correspondería (mismo rol, en otra invocación cuando el rate limit haya pasado)
+- Documentar la violación en el RETRO de Phase 7
+
+**Por qué:** Lección directa de DD-896 FM-04 — el orquestador implementó S5 (`payload_builder.py`, 225 LOC) directamente por rate limit del `backend-developer`. Re-review mitigó el riesgo pero el patrón es peligroso: si se normaliza, el orquestador degrada a implementer y se pierde el aislamiento de roles.
+
 ---
 
 ## Token Budget (recomendado)
@@ -247,7 +267,7 @@ python3 ~/Documents/Agentes/AgentesTrabajos/kuraka/kuraka-inspect.py [dir]
 python3 ~/.../kuraka-inspect.py > inspect-report.json
 ```
 
-El agente [[amauta]] lee este JSON como input principal en el modo Brownfield.
+El agente `amauta` lee este JSON como input principal en el modo Brownfield.
 
 ### `aggregate-telemetry.py`
 

@@ -1,0 +1,206 @@
+# =============================================================================
+# kuraka.config.yaml — Schema version 1
+# =============================================================================
+#
+# This file is a documented TEMPLATE. Copy it to your project root as
+# `kuraka.config.yaml`, then edit the values to match your stack.
+#
+#   cp <kuraka-vault>/kuraka-artifacts/config-schema.yaml kuraka.config.yaml
+#
+# Validation:
+#   bash <kuraka-vault>/validate-kuraka.sh         # or `kuraka validate`
+#
+# This file is the single source of truth that the framework agents read at
+# invocation time. They use it to:
+#   - locate code (paths)
+#   - run checks (lint/test/typecheck commands)
+#   - apply conventions (naming, null syntax, layer ordering)
+#   - choose a default workflow mode
+#
+# Anything that is *project-specific institutional knowledge* (lessons learned,
+# review checklists, glossary) does NOT go here — it lives under
+# `<project>/.claude/project/`. See migration plan Fase 3.5.
+#
+# Formal validation rules: see `config-schema.json` next to this file.
+# =============================================================================
+
+
+# Schema version this file conforms to. Bump when the framework introduces
+# breaking changes to the schema (per SemVer policy in 02-MIGRACION-FRAMEWORK.md).
+schema_version: 1
+
+
+# -----------------------------------------------------------------------------
+# project — minimal identifying metadata
+# -----------------------------------------------------------------------------
+project:
+  name: my-project              # required. slug-like (lowercase, hyphens)
+  description: |                # required. one to three lines
+    Short description of what this project is and who uses it.
+  repo_url: ""                  # optional. https://... or git@...:... — used
+                                # for cross-references in retros
+
+
+# -----------------------------------------------------------------------------
+# stack — language, framework, and command surface
+#
+# At least one of `backend` or `frontend` must be present. Both is common.
+# Omit a section entirely if it does not apply (CLI tool: only backend;
+# static site: only frontend; API-only service: no frontend).
+# -----------------------------------------------------------------------------
+stack:
+
+  backend:
+    # Open enums: free-form strings; the values listed are the ones the
+    # framework recognizes today. Use "other" for stacks not yet profiled
+    # (the agent will degrade gracefully and ask for clarification).
+
+    language: python            # python | typescript | javascript | go |
+                                # rust | ruby | java | csharp | php | other
+
+    framework: fastapi          # fastapi | django | flask | starlette |
+                                # express | nestjs | koa | hono |
+                                # gin | echo | fiber |
+                                # rails | sinatra |
+                                # spring | quarkus |
+                                # dotnet | aspnet |
+                                # laravel | symfony | other
+
+    package_manager: pip        # pip | poetry | uv | pipenv |
+                                # npm | yarn | pnpm | bun |
+                                # cargo | go-mod | bundler | maven | gradle |
+                                # composer | other
+
+    orm: sqlalchemy             # optional. sqlalchemy | django-orm |
+                                # prisma | typeorm | drizzle | mongoose |
+                                # gorm | sqlx | diesel |
+                                # activerecord | ecto | other | none
+
+    # Commands are run from the project root unless your project requires
+    # a `cd` into a subdir (in which case prefix with `cd <subdir> && ...`).
+    lint_cmd: "ruff check ."
+    test_cmd: "make test"
+    typecheck_cmd: "mypy ."     # optional. empty string or null → no step
+    format_cmd: "ruff format ." # optional
+
+  frontend:
+    language: typescript        # typescript | javascript
+
+    framework: vue              # vue | react | svelte | angular |
+                                # nextjs | nuxt | sveltekit | remix |
+                                # astro | solid | qwik | other
+
+    package_manager: npm        # npm | yarn | pnpm | bun
+
+    state_mgmt: pinia           # optional. pinia | vuex |
+                                # redux | zustand | jotai | recoil | mobx |
+                                # xstate | signals | none | other
+
+    lint_cmd: "npm run lint"
+    test_cmd: "npm run test"
+    typecheck_cmd: "npm run typecheck"
+    format_cmd: "npm run format"
+
+  database:                     # optional. omit if no DB.
+    engine: postgres            # postgres | mysql | mariadb | sqlite |
+                                # mongodb | redis | dynamodb | cassandra |
+                                # elasticsearch | other
+
+    migration_tool: alembic     # alembic | django-migrations |
+                                # prisma | typeorm-migrations | drizzle-kit |
+                                # flyway | liquibase |
+                                # rails-migrations | sqlx-cli | goose |
+                                # other | none
+
+
+# -----------------------------------------------------------------------------
+# architecture — layer ordering and project paths
+# -----------------------------------------------------------------------------
+architecture:
+
+  # Ordered list of layer names, from outermost (request entry) to innermost
+  # (data). Agents use this to enforce two rules:
+  #   1. No skipping layers (e.g., endpoint must not call repository directly).
+  #   2. No logic in inner layers (repository = queries only; model = data).
+  #
+  # Common patterns:
+  #   FastAPI 4-layer:  [endpoint, service, repository, model]
+  #   Django:           [view, service, model]
+  #   Express MVC:      [route, controller, service, repository, model]
+  #   Rails:            [controller, service, model]
+  #   Hexagonal:        [adapter, application, domain]
+  #
+  # If your project uses a non-layered architecture (e.g., pure functional,
+  # actor model), set `layers: []` and document the pattern in
+  # <project>/.claude/project/conventions/architecture.md.
+  layers:
+    - endpoint
+    - service
+    - repository
+    - model
+
+  # Project-relative paths. Use trailing slash for directories. No leading slash.
+  # All paths are resolved from the project root (where kuraka.config.yaml lives).
+  paths:
+    backend_root: backend/                          # required if stack.backend present
+    frontend_root: frontend/                        # required if stack.frontend present
+    tests_root: tests/                              # required
+    migrations_root: backend/alembic/versions/      # required if database.migration_tool set
+    docs_process_root: docs/process/                # required. REQs, stories, retros
+
+
+# -----------------------------------------------------------------------------
+# conventions — opinionated rules the agents enforce
+# -----------------------------------------------------------------------------
+conventions:
+
+  # Language used for identifiers (variable names, function names, table names).
+  # Agents flag identifiers in another language as findings.
+  naming_language: english      # english | spanish | other
+
+  # How nullable types are written.
+  #   "T | None"   — modern Python (3.10+), modern TypeScript, Rust, Kotlin
+  #   "Optional[T]" — legacy Python (≤3.9 typing module style)
+  null_syntax: "T | None"
+
+  # If true, agents require a tenant scope column in every query against
+  # tenant-scoped tables, and flag queries that don't filter by it.
+  multi_tenant: true
+
+  # Column name used for tenant scoping. Only consulted when multi_tenant: true.
+  # Common values: tenant_id, org_id, account_id, workspace_id, customer_id.
+  tenant_column_name: tenant_id
+
+  # If true, agents flag magic strings used as states/types and require enums.
+  enums_for_states: true
+
+  # File and function size limits (lines of code, including comments and blanks).
+  # Agents flag files/functions exceeding these as IMPORTANT or BLOCKER.
+  max_file_loc: 700
+  max_function_loc: 50
+
+  # Optional. Stricter limit for frontend files (e.g., Vue SFCs, React components).
+  # null or omitted → fall back to max_file_loc.
+  max_frontend_file_loc: 400
+
+
+# -----------------------------------------------------------------------------
+# workflow — orchestrator behavior
+# -----------------------------------------------------------------------------
+workflow:
+
+  # Which mode runs when the user invokes Kuraka without specifying one.
+  #   standard   — 4 phases (PO+stories+plan / impl / review / tests). DEFAULT.
+  #   compliance — 8 phases (regulated/critical changes; ex-"Normal").
+  #   lite       — 3 phases (trivial changes meeting 9 strict criteria).
+  default_mode: standard
+
+  # If true, the orchestrator pauses at every gate and asks the user to confirm
+  # before advancing to the next phase. If false, gates auto-pass when checks
+  # (lint/test/typecheck) are green; the orchestrator only stops on failure.
+  gates_require_user_approval: true
+
+  # If true, backend and frontend implementation phases can run in parallel
+  # when their stories are independent. If false, sequential (backend first
+  # if there's an API contract).
+  parallel_implementation: true

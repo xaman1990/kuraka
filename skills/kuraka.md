@@ -1,6 +1,6 @@
 ---
 name: kuraka
-description: "Development orchestrator (kuraka, del Quechua *kuraq* — 'el mayor'). Multi-agent workflow for end-to-end requirements: PO analysis → Story refinement → Test planning → Architect review → Implementation → Code review → Security → Tests → E2E → Deployment → Final audit. Scale the pipeline to the change's risk — see [[kuraka-modes]]."
+description: "Development orchestrator (kuraka, del Quechua *kuraq* — 'el mayor'). Multi-agent workflow for end-to-end requirements: PO analysis → Story refinement → Test planning → Architect review → Implementation → Code review → Security → Tests → E2E → Deployment → Final audit. Scale the pipeline to the change's risk — see `kuraka-modes`."
 ---
 
 # Kuraka — Development Orchestrator
@@ -149,6 +149,46 @@ Gate 4: todas las stories implementadas + checks en verde.
 - Valida: `docker-compose config`, env vars documentadas en `.env.example`, nginx, CI, migraciones aplican, smoke test de build
 - Gate: sin BLOCKER
 
+### Phase 6.8 — Smoke test runtime (OBLIGATORIO en TODO ciclo Kuraka)
+
+**Aplica SIEMPRE.** Esta fase no es opcional ni condicional al tipo de cambio. Todo ciclo Kuraka — independientemente del provider, del scope, del modo (Normal/Lite/Retroactive) — debe ejercitar el flujo end-to-end antes de declarar el ciclo cerrado. El principio rector es **«tests verdes + reviews aprobadas ≠ feature funcional»**.
+
+**El orquestador NO puede invocar Phase 7 (Final Audit / RETRO)** sin haber completado o justificado explícitamente esta fase. Si lo intenta, debe revertir y completar 6.8 primero.
+
+**Pasos obligatorios:**
+
+1. **Identificar el flujo end-to-end principal** del cambio. Para CUALQUIER cambio, articular en una frase: «el resultado de este ciclo es que el sistema ahora puede X cuando Y». Si no se puede articular, el alcance del ciclo está mal definido y hay que volver a Phase 1.
+   - Ejemplos por tipo de cambio:
+     - **Provider/integración**: «email entrante → case persistido en BD → sync a servicio externo».
+     - **Endpoint nuevo**: «request HTTP autenticado → validación → service → repository → respuesta verificada».
+     - **Refactor**: «el comportamiento observable antes y después del refactor es idéntico para los 2-3 flujos críticos que toca».
+     - **UI/Frontend**: «el usuario navega a la página, ejecuta la acción principal, ve el resultado esperado». Dev server + browser, no solo `npm run build`.
+     - **Schema/migration**: «la migration aplica sobre un dump real (o snapshot), las queries afectadas siguen funcionando, el rollback es seguro».
+     - **Bug fix**: «el escenario que reproducía el bug ahora produce el comportamiento correcto».
+2. **Diseñar UN escenario smoke test runtime** que ejercite ese flujo con:
+   - Input realista (datos reales anonimizados o fixture lo más cercana posible a producción). **NO** mock sintético trivial generado por el agente.
+   - Dependencias reales o mocks de alta fidelidad (httpx_mock con responses verificadas, base de datos real con seeds aplicados, no `MagicMock()` genérico).
+   - Verificación de que TODOS los componentes encajan: contratos de datos, shapes esperados, side effects, persistencia, llamadas externas, manejo de errores cuando aplica.
+3. **Ejecutar el escenario** end-to-end, no las piezas por separado.
+4. **Documentar el resultado** en `docs/process/smoke-tests/SMOKE-{ticket}.md`:
+   - Comando exacto ejecutado
+   - Output verificado (con cita literal o screenshot si es UI)
+   - Componentes ejercitados (lista cerrada)
+   - Componentes NO ejercitados y por qué — cualquier componente del flujo no ejercitado debe tener justificación explícita («stub aceptado por scope DD-XXX», «requiere credenciales prod que no tenemos en dev», etc.)
+5. **Si el smoke test falla**, abrir bug-fix story en Phase 4 antes de avanzar a Phase 7. **No cerrar el ciclo con flujo end-to-end roto.**
+
+**Skip request** (no skip automático): el orquestador puede PEDIR al usuario saltar 6.8 SÓLO en estos casos, y sólo con aprobación explícita:
+
+- **Documentación pura**: el ciclo no modifica código ejecutable.
+- **Refactor verificable estáticamente** sin cambio de comportamiento (rename, mover archivos sin tocar lógica, tipado más estricto sin cambio runtime).
+- **Imposibilidad técnica documentada** (ej. requiere infraestructura no disponible en dev). En este caso, abrir IMP/subtask para añadir el smoke test cuando la infraestructura esté disponible.
+
+Si el usuario aprueba el skip, **documentarlo en el RETRO Phase 7** como riesgo aceptado con la justificación textual.
+
+**Gate**: `docs/process/smoke-tests/SMOKE-{ticket}.md` existe y verde, O justificación de skip aprobada por el usuario y documentada en el RETRO.
+
+**Por qué**: lección DD-896 IS-05 generalizada — `make test` verde + reviews aprobadas + RETRO cerrado NO garantiza que las piezas funcionen juntas. La regla del CLAUDE.md global ya lo dice para UI («Type checking and test suites verify code correctness, not feature correctness»); este gate extiende ese principio a TODO ciclo Kuraka, no solo a providers o integraciones. **Sin esta fase, cualquier ciclo puede cerrarse con tests verdes y feature rota — el coste oculto se traslada a post-cierre y no aparece en métricas formales.**
+
 ### Phase 7 — Final Audit
 - Agent: [[final-auditor]] | Skill: [[run-audit]]
 - Output: `docs/process/agent-retrospectives/RETRO-{REQ-name}.md` con:
@@ -189,6 +229,7 @@ donde el bypass produjo type errors y telemetría rota.
 - **Refrescar stories obsoletas** si el usuario hace correcciones entre fases
 - **Una story a la vez en Phase 4** — baby steps
 - **Optimización de tokens**: aplicar `rules/17-kuraka-token-optimizations.md` (context digest, end-only typecheck, combined phases, mapping-table stories, no auto-verify)
+- **Tests verdes ≠ feature funcional** (principio rector universal): TODO ciclo Kuraka, sin excepción de tipo de cambio o provider, debe ejercitar el flujo end-to-end antes de cerrarse (ver Phase 6.8). `make test` verde + reviews aprobadas son condición necesaria pero NUNCA suficiente para declarar un ciclo terminado. Si el smoke test runtime no es viable, justificarlo explícitamente y registrarlo como riesgo aceptado en el RETRO. **Esta regla aplica a CUALQUIER cambio**: backend, frontend, refactor, bug fix, migration, integración o cosmético — no solo a providers o flujos de datos. Lección DD-896 IS-05.
 
 ---
 
@@ -209,6 +250,7 @@ Para modo Normal, añade al inicio del REQ:
 - [ ] Phase 6: Tests
 - [ ] Phase 6.5: E2E Tests
 - [ ] Phase 6.7: Deployment Verification
+- [ ] Phase 6.8: Smoke test runtime (OBLIGATORIO en todo ciclo — skip solo con justificación explícita)
 - [ ] Phase 7: Final Audit
 ```
 

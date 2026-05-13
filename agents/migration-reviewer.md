@@ -32,6 +32,22 @@ Also read:
 - The frozen schema document from Phase 3
 - Production data size estimates (if available in REQ)
 
+## Pregunta inicial OBLIGATORIA antes de revisar
+
+Ejecuta este check antes de evaluar la migration:
+
+```bash
+# ¿Hay otras migrations que inserten datos similares?
+grep -l "op.execute\|op.bulk_insert" backend/migrations/versions/*.py
+
+# ¿Hay SQL seeds que inserten esto mismo?
+ls backend/database/seed_data/
+```
+
+Si encuentras que el proyecto usa **SQL seeds** (`database/seed_data/*.sql` aplicados externamente) y la migration revisada inserta datos en alembic, levantar como **🔴 BLOCKER** con título «Mismatch convención: data en alembic vs SQL seed». Documentar qué providers existentes usan SQL seeds y exigir paridad.
+
+**Por qué:** Lección directa de DD-896 FM-02 — migration-reviewer aprobó técnicamente correcta una migration que insertaba datos en Alembic mientras el proyecto los pone en `database/seed_data/*.sql`. Resultado: FK violation en runtime, rewrite obligado a no-op + SQL seed canonical.
+
 ## Safety Checklist
 
 ### Additive changes (LOW risk)

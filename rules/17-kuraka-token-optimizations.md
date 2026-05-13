@@ -188,3 +188,17 @@ Report only:
 **Golden rule:** if you doubt whether a rule T applies, ask the user — don't
 assume. The cost of a one-sentence confirmation is lower than the cost of a
 wasted 200K-token subagent invocation.
+
+---
+
+## Rule T6 — Ejecutar `make test` después de cada story que toque BD
+
+**Aplica cuando** la story implementa una migration, un seed o un cambio de modelo SQLAlchemy.
+
+**Cómo**: el orquestador invoca `make test` (o `make test-fast`) inmediatamente después de que el agente implementador termine la story BD-tocante, **antes** de avanzar a la siguiente story.
+
+**Por qué**: en DD-896 (FM-02), 3 bugs distintos de S1 se descubrieron en Phase 6 después de implementar las 7 stories. Detectar el bug en S1 hubiera ahorrado ~80K tokens y un rewrite arquitectónico.
+
+**Para stories que no tocan BD** (UI, lógica pura, fixtures): mantener el batch test al final del Phase 4.
+
+**Estimación de ahorro**: 50-100K tokens en provider migrations, en función de cuántas iteraciones de make test se evitan.
