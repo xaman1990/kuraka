@@ -75,7 +75,7 @@ mkdir -p ".claude/rules"
 for rule in 16-agent-backup.md 17-kuraka-token-optimizations.md; do
     src="$VAULT/rules/$rule"
     if [ -f "$src" ]; then
-        cp -u "$src" ".claude/rules/$rule"
+        cp "$src" ".claude/rules/$rule"
         echo "   ✓ rules/$rule"
     fi
 done
@@ -90,14 +90,14 @@ if [ -d "$ARTIFACTS_SRC" ]; then
     # docs/process/lessons-learned.md
     if [ -f "$ARTIFACTS_SRC/docs/process/lessons-learned.md" ]; then
         mkdir -p "docs/process"
-        cp -u "$ARTIFACTS_SRC/docs/process/lessons-learned.md" "docs/process/"
+        cp "$ARTIFACTS_SRC/docs/process/lessons-learned.md" "docs/process/"
         echo "   ✓ docs/process/lessons-learned.md"
     fi
 
     # docs/process/agent-telemetry/DASHBOARD.md (template; per-cycle JSONs stay project-local)
     if [ -f "$ARTIFACTS_SRC/docs/process/agent-telemetry/DASHBOARD.md" ]; then
         mkdir -p "docs/process/agent-telemetry"
-        cp -u "$ARTIFACTS_SRC/docs/process/agent-telemetry/DASHBOARD.md" "docs/process/agent-telemetry/"
+        cp "$ARTIFACTS_SRC/docs/process/agent-telemetry/DASHBOARD.md" "docs/process/agent-telemetry/"
         echo "   ✓ docs/process/agent-telemetry/DASHBOARD.md"
     fi
 
@@ -157,6 +157,42 @@ fi
 echo ""
 echo "✅ Kuraka montado en $TARGET/.claude/"
 echo ""
+
+# --- pre-flight check: kuraka.config.yaml + .claude/project/ ---
+HAS_CONFIG=0
+HAS_PROJECT=0
+[ -f "$TARGET/kuraka.config.yaml" ] && HAS_CONFIG=1
+[ -d "$TARGET/.claude/project" ] && HAS_PROJECT=1
+
+if [ "$HAS_CONFIG" = "0" ] || [ "$HAS_PROJECT" = "0" ]; then
+    echo "⚠️  ATENCIÓN — ADOPCIÓN INCOMPLETA"
+    echo ""
+    [ "$HAS_CONFIG" = "0" ] && \
+        echo "   ❌ kuraka.config.yaml NO existe en el proyecto."
+    [ "$HAS_PROJECT" = "0" ] && \
+        echo "   ❌ .claude/project/ NO existe en el proyecto."
+    echo ""
+    echo "   Los agentes refactorizados (v0.3+) leen kuraka.config.yaml para"
+    echo "   paths y comandos, y .claude/project/ para convenciones y lecciones."
+    echo "   Sin esos dos artefactos, los agentes van a fallar o degradar a"
+    echo "   guidance genérico."
+    echo ""
+    echo "   Para completar la adopción:"
+    echo ""
+    echo "     export KURAKA_VAULT=\"$VAULT\""
+    if [ "$HAS_CONFIG" = "0" ]; then
+        echo "     cp \"\$KURAKA_VAULT/kuraka-artifacts/config-schema.yaml\" ./kuraka.config.yaml"
+        echo "     # editar kuraka.config.yaml con valores reales del proyecto"
+    fi
+    if [ "$HAS_PROJECT" = "0" ]; then
+        echo "     mkdir -p .claude/project"
+        echo "     # si este proyecto es sie_v2, copiar el layer pre-poblado:"
+        echo "     cp -r \"\$KURAKA_VAULT/kuraka-artifacts/migration-examples/sie_v2-project-layer/.\" .claude/project/"
+        echo "     # si es otro proyecto, crear archivos a medida (ver README de migration-examples)"
+    fi
+    echo ""
+fi
+
 echo "📋 PASOS SIGUIENTES:"
 echo ""
 echo "  1. Unstage cualquier fichero personal ya indexado en git:"
