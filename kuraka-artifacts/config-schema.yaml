@@ -190,10 +190,14 @@ conventions:
 workflow:
 
   # Which mode runs when the user invokes Kuraka without specifying one.
-  #   standard   — 4 phases (PO+stories+plan / impl / review / tests). DEFAULT.
-  #   compliance — 8 phases (regulated/critical changes; ex-"Normal").
-  #   lite       — 3 phases (trivial changes meeting 9 strict criteria).
-  default_mode: standard
+  # Current values (matches kuraka-modes.md as of v0.3.x):
+  #   normal       — 8 phases. DEFAULT for changes with logic/DB/API contracts.
+  #   reduced      — 3-5 phases. Narrow changes (UI-only, types-only, renames).
+  #   lite         — 3 phases. Trivial changes meeting 9 strict criteria.
+  #   retroactive  — 4 phases. Anti-pattern: code already implemented.
+  # Fase 5 (workflow restructure) will rebrand:
+  #   normal → compliance, and introduce a new `standard` (4 phases) as default.
+  default_mode: normal
 
   # If true, the orchestrator pauses at every gate and asks the user to confirm
   # before advancing to the next phase. If false, gates auto-pass when checks

@@ -1,0 +1,93 @@
+# =============================================================================
+# kuraka.config.yaml — sie_v2 (Guai Platform)
+# =============================================================================
+#
+# This config goes at the ROOT of the sie_v2 repo (`sie_v2/kuraka.config.yaml`).
+# All `architecture.paths.*` are relative to that location.
+#
+# Generated from real codebase inspection — values verified against
+# sie_v2 on 2026-05-13 (commit at the time: feature/DD-1031_MutuaMadrileña_v2
+# branch tip; the relevant artifacts have not moved on main).
+# =============================================================================
+
+schema_version: 1
+
+project:
+  name: sie-v2
+  description: |
+    SIE v2 (Guai Platform) — multi-tenant insurance integrations platform.
+    Backend: FastAPI (Python 3.10+) + SQLAlchemy + Alembic + PostgreSQL.
+    Frontend: Vue 3 (Composition API) + TypeScript strict + Pinia + Vite.
+    Integrates with multiple insurance providers (asitur, generali, ima,
+    santander, mutua_madrilena, caser, pelayo, lagunaro, linea_directa,
+    kutxa, multiasistencia, proyecta).
+  repo_url: ""
+
+stack:
+
+  backend:
+    language: python
+    framework: fastapi
+    package_manager: pip
+    orm: sqlalchemy
+
+    # All commands run from the project root (where this config lives = sie_v2/).
+    lint_cmd: "ruff check backend/"
+    test_cmd: "make test"
+    typecheck_cmd: ""        # not enforced in the current workflow
+    format_cmd: "ruff format backend/"
+
+  frontend:
+    language: typescript
+    framework: vue
+    package_manager: npm
+    state_mgmt: pinia
+
+    lint_cmd: "cd frontend && npm run lint"
+    test_cmd: "cd frontend && npm run test"
+    typecheck_cmd: "cd frontend && npm run typecheck"
+    format_cmd: "cd frontend && npm run format"
+
+  database:
+    engine: postgres
+    migration_tool: alembic
+
+architecture:
+
+  # Layer order from outermost (request entry) to innermost (data).
+  # Documented in conventions/backend-architecture.md.
+  layers:
+    - endpoint
+    - service
+    - repository
+    - model
+
+  # Paths relative to the project root (sie_v2/, where this file lives).
+  paths:
+    backend_root: backend/
+    frontend_root: frontend/
+    tests_root: backend/tests/
+    migrations_root: backend/migrations/versions/
+    docs_process_root: docs/process/
+
+conventions:
+
+  naming_language: english
+  null_syntax: "T | None"
+
+  # sie_v2 IS multi-tenant. 41 SQLAlchemy models include tenant_id;
+  # 30 repository modules filter by it. `tenants` table exists at
+  # backend/api/models/tenant.py. Confirmed 2026-05-13.
+  multi_tenant: true
+  tenant_column_name: tenant_id
+
+  enums_for_states: true
+
+  max_file_loc: 700
+  max_function_loc: 50
+  max_frontend_file_loc: 400
+
+workflow:
+  default_mode: normal
+  gates_require_user_approval: true
+  parallel_implementation: true

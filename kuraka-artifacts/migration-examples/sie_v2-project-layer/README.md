@@ -22,6 +22,13 @@ layout) are migrated to this layer, with two exceptions:
 
 ## Contents
 
+### Top-level
+
+- `kuraka.config.yaml` — pre-filled project config (placed at the sie_v2
+  repo root, NOT inside `.claude/project/`). Values verified against
+  the codebase on 2026-05-13: multi_tenant true, paths relative to
+  sie_v2/, pip + ruff + make test on backend, npm + vue-tsc on frontend.
+
 ### `conventions/` (15 files)
 
 | File | Replaces (old rule) | Loaded by agents |
@@ -68,30 +75,41 @@ layout) are migrated to this layer, with two exceptions:
 ## How sie_v2 consumes this (adoption sequence)
 
 ```bash
-# 1. Export the vault path (the mount script falls back to a default,
-#    but the cp commands below need this to be exported).
+# 1. Export the vault path. Required by every cp/cp -r below.
+#    The mount script has a hardcoded fallback, but the user-run
+#    commands below would expand to /kuraka-artifacts/... without this.
 export KURAKA_VAULT=/Users/xmn/Documents/Agentes/AgentesTrabajos/kuraka
 
-# 2. From the sie_v2 repo root, on a branch isolated from in-flight work
-cd /path/to/sie_v2
-git checkout develop && git pull            # or main
+# 2. From the sie_v2 repo root, on a branch isolated from in-flight work.
+#    sie_v2 uses `main` as the trunk (no `develop`).
+cd /Users/xmn/Documents/Trabajo/Cuidacasas/sie_integraciones/sie_v2
+git checkout main && git pull
 git checkout -b kuraka-v0.3.x
 
-# 3. Create kuraka.config.yaml from the template
-cp "$KURAKA_VAULT/kuraka-artifacts/config-schema.yaml" ./kuraka.config.yaml
-# Edit by hand: set project.name=sie_v2, stack.backend.framework=fastapi,
-# stack.backend.lint_cmd, stack.backend.test_cmd, architecture.paths.*, etc.
+# 3. Copy the pre-filled kuraka.config.yaml for sie_v2.
+#    This file already has the correct values verified from the codebase
+#    (multi_tenant: true, paths relative to sie_v2/, etc.). Review it
+#    before committing in case there are project preferences to tweak.
+cp "$KURAKA_VAULT/kuraka-artifacts/migration-examples/sie_v2-project-layer/kuraka.config.yaml" ./kuraka.config.yaml
 
-# 4. Populate the project specialization layer from this directory
+# 4. Populate the project specialization layer from this directory.
+#    Excludes kuraka.config.yaml (already at root from step 3).
 mkdir -p .claude/project
-cp -r "$KURAKA_VAULT/kuraka-artifacts/migration-examples/sie_v2-project-layer/." .claude/project/
+rsync -a --exclude='kuraka.config.yaml' \
+  "$KURAKA_VAULT/kuraka-artifacts/migration-examples/sie_v2-project-layer/" \
+  .claude/project/
 
-# 5. Mount the framework (agents + skills + stack profiles)
+# 5. Mount the framework (agents + skills + stack profiles + meta-rules).
 bash "$KURAKA_VAULT/mount-kuraka.sh"
 
-# 6. Restart Claude Code so subagents register at session start
+# 6. Restart Claude Code so subagents register at session start.
+#    (This is a Claude Code slash command, not a shell command.)
 /exit
 ```
+
+**Note**: if you started from a feature branch and forgot, your new
+`kuraka-v0.3.x` branch will carry that branch's changes. Verify with
+`git log --oneline main..HEAD` before committing the mount.
 
 After step 6, in a new Claude Code session, the agents will:
 

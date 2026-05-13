@@ -222,8 +222,9 @@
       "additionalProperties": false,
       "properties": {
         "default_mode": {
+          "description": "Default workflow mode. Current values match kuraka-modes.md. Fase 5 will rebrand normal→compliance and introduce a new 4-phase 'standard' default.",
           "type": "string",
-          "enum": ["standard", "compliance", "lite"]
+          "enum": ["normal", "reduced", "lite", "retroactive", "compliance", "standard"]
         },
         "gates_require_user_approval": { "type": "boolean" },
         "parallel_implementation": { "type": "boolean" }
