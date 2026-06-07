@@ -60,6 +60,19 @@ layout) are migrated to this layer, with two exceptions:
 | `security-reviewer.md` | `security-reviewer` agent |
 | `migration-reviewer.md` | `migration-reviewer` agent |
 
+### `agents/` (3 files)
+
+Per-agent addenda — the documented escape hatch loaded last in each
+agent's prompt (`.claude/project/agents/{agent}.append.md`). These hold
+the DD-1031 cross-cycle known-bug guards so the errors are prevented at
+generation time, not caught at the gate.
+
+| File | Loaded by | Guards against |
+|---|---|---|
+| `backend-developer.append.md` | `backend-developer` agent | exception arity, `get_event_loop`, in-function imports, hardcoded ids, config fallbacks, oracle-exact `id_unico` |
+| `test-engineer.append.md` | `test-engineer` agent | assertions against assumed contracts (oracle-first) |
+| `story-refiner.append.md` | `story-refiner` agent | known-bug RETRO-rider AC + seed/migration verification |
+
 ### `lessons-learned/` (4 files)
 
 | File | `applies_to` |

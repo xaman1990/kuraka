@@ -15,8 +15,16 @@ that coordinates 16 subagents across an 8-phase dev lifecycle.
 ## Commands
 
 ```bash
+# One-shot initializer (RECOMMENDED entry point). Runs inspect → draft config →
+# project skeleton → mount → registry, in one command, from anywhere. The only manual
+# step left is restarting Claude Code in the target. Interactive or flag-driven (the
+# future control-plane web app wraps this). Never overwrites an existing config/layer.
+python3 kuraka-init.py [target_dir]                  # or: --target ... --name ... --yes
+python3 kuraka-init.py --target /path --name foo --yes --no-mount
+
 # Mount the vault into a consumer project (copies agents/skills/rules/artifacts into
 # .claude/ and updates .gitignore of the target). Always run in the target repo root.
+# (kuraka-init.py calls this for you; use directly only for a re-mount.)
 bash mount-kuraka.sh [target_dir]            # default target is $PWD
 
 # Validate frontmatter + registration readiness of a mounted .claude/

@@ -191,14 +191,22 @@ wasted 200K-token subagent invocation.
 
 ---
 
-## Rule T6 — Ejecutar `make test` después de cada story que toque BD
+## Rule T6 — Implementación secuencial + `make test` obligatorio por story (provider migrations)
 
-**Aplica cuando** la story implementa una migration, un seed o un cambio de modelo SQLAlchemy.
+**Aplica cuando** cualquiera de estas es cierta:
+- La story crea o modifica un provider, processor o integration handler.
+- La story crea un seed o una migration, o cambia un modelo SQLAlchemy.
+- La story usa abstract base classes, mocks cross-module o fixtures custom.
+- La story implementa más de una feature distinta (riesgo de interdependencia).
 
-**Cómo**: el orquestador invoca `make test` (o `make test-fast`) inmediatamente después de que el agente implementador termine la story BD-tocante, **antes** de avanzar a la siguiente story.
+**Cómo**:
+- NO lanzar varias stories en paralelo. Implementar las stories **secuencialmente**.
+- Después de que cada story termine, correr `make test` (o `make test-fast`) **antes** de empezar la siguiente.
+- Si `make test` falla, arreglar el bug en la story actual antes de avanzar.
+- Esta disciplina demostró entregar ~0 retrabajo cross-story (RETRO-DD-1031-rerun), frente a un batch que acumuló "23 fallos" (RETRO-DD-1031).
 
-**Por qué**: en DD-896 (FM-02), 3 bugs distintos de S1 se descubrieron en Phase 6 después de implementar las 7 stories. Detectar el bug en S1 hubiera ahorrado ~80K tokens y un rewrite arquitectónico.
+**Excepción**: stories puramente frontend sin cambios de backend pueden ir en batch, siempre que la verificación sea por-story.
 
-**Para stories que no tocan BD** (UI, lógica pura, fixtures): mantener el batch test al final del Phase 4.
+**Por qué**: en DD-896 (FM-02), 3 bugs distintos de S1 se descubrieron en Phase 6 después de implementar las 7 stories. En DD-1031 el batch paralelo acumuló bugs de S1+S3+S4 que se propagaron por re-implementaciones. Secuencial + make-test por story detecta el bug en su origen.
 
-**Estimación de ahorro**: 50-100K tokens en provider migrations, en función de cuántas iteraciones de make test se evitan.
+**Estimación de ahorro**: 50-100K tokens en provider migrations (elimina la tormenta de debugging de errores acumulados).

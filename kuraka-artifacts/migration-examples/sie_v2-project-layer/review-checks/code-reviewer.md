@@ -57,3 +57,45 @@ for the mutation pattern; if no `audit.log` call accompanies it, flag.
 
 **Severity**: IMPORTANT (some teams flag as BLOCKER — calibrate with the
 project owner).
+
+## 3. Hardcoded fallbacks masking config errors
+
+**When it applies**: any provider/integration code that reads auth URLs,
+contract names, credentials, realms or retry limits from config.
+
+**The check**: convenience fallbacks that silently substitute a value when
+config is missing are PROHIBITED — they hide the real misconfiguration
+until it blows up end-to-end in production (this masked the Keycloak UAT
+realm when prod `token_url` was missing, RETRO-2026-06-04). Grep the
+provider code:
+
+```bash
+grep -rn "_FALLBACK\|_DEFAULT" backend/ --include="*.py"
+# and config-lookup `or` fallbacks:
+grep -rn "token_url or \|contract_name or \|realm or " backend/ --include="*.py"
+```
+
+If a URL / credential / contract / realm is supplied via a fallback,
+flag it. The code MUST raise an error that names the missing field.
+
+**Severity**: BLOCKER. "Config fallbacks hide real misconfiguration. If X
+is missing, raise an error that names it; do not silently use a fallback."
+
+## 4. Test reconciliation after refactors
+
+**When it applies**: any refactor that renames a class/method, moves an
+API, or removes a contract (especially in provider code).
+
+**The check**: stale tests left behind after a refactor are dead code and
+must not be carried forward as "pre-existing failures".
+
+- [ ] Every `test_*` that references the changed class/method either PASSES
+      or is explicitly SKIPPED with a comment explaining why (deferred).
+- [ ] No test file exercises a removed API/class (e.g. `test_outbound.py`
+      testing the deleted `COMMUNICATION_MAP`).
+- [ ] If a test is skipped, a ticket is filed with the exact skip reason.
+- [ ] If a class is renamed, factory convention AND its tests are updated
+      in the same PR.
+
+**Severity**: IMPORTANT. Stale tests are dead code — clean them up, don't
+carry them forward as noise.
