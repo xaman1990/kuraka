@@ -13,12 +13,66 @@ into a pre-existing codebase.
 
 | Mode | When | Phases / agents |
 |---|---|---|
+| **Discovery** (Design-Thinking) | Only an idea, no requirement yet — want domain experts to shape the bases | `facilitate-discovery` (Tinkuy council) → po-analyst / inti |
 | **Bootstrap** (Greenfield) | Project with no code yet (just an idea) | `inti` → `arki` → Normal Kuraka |
 | **Brownfield** | Existing project without Kuraka | `kuraka-inspect` → `amauta` → Normal Kuraka |
 | **Normal** | Change in a project with Kuraka already integrated | 8 phases (see `kuraka.md`) |
 | **Reduced by risk** | Narrow change of low complexity | 3–5 phases |
 | **Lite** | Trivial change (9 strict criteria) | 3 phases |
 | **Retroactive** | Code already implemented without Kuraka (anti-pattern) | 4 phases |
+
+---
+
+## Mode: Discovery (Design-Thinking — idea without a requirement)
+
+**When**: the user has an **idea**, not a requirement ("quiero un software
+de contabilidad"), and wants to discuss the bases of the system with the
+right domain voices *before* anything is defined. This is the fuzzy
+front-end that sits **before** `po-analyst`.
+
+**Phase map**:
+
+| Phase | Tool / Agent | Output | Gate |
+|---|---|---|---|
+| D1 | orchestrator + `facilitate-discovery` skill | proposed council (2–4 expert lenses) | User approves the council |
+| D2 | ephemeral expert subagents (spawned by orchestrator) | diverge/converge synthesis per round | User reacts, resolves conflicts |
+| D3 | orchestrator | `docs/discovery/design-brief-{slug}.md` | User approves the brief |
+| D4 | orchestrator (opt-in) | promoted experts in `.claude/project/agents/` | User picks which experts to keep |
+
+**Key architectural point**: the facilitator is a **skill the orchestrator
+runs**, not a subagent — only the orchestrator can spawn the expert panel
+(a subagent cannot spawn subagents). See `facilitate-discovery.md`.
+
+**Hybrid by design**:
+- *Ephemeral council* (default) — experts are throwaway subagents with
+  prompts authored on the fly; you converse through the facilitator with
+  **no restart**.
+- *Promotion* (opt-in) — worthwhile experts are written to the consumer
+  project's `.claude/project/agents/` as real reusable agents; one restart
+  registers them.
+
+**How to start**:
+
+```text
+# in the target project (Kuraka mounted, with or without kuraka.config.yaml)
+# new session — tell the orchestrator your raw idea:
+#   "Tengo una idea, no un requerimiento todavía: {idea}.
+#    Quiero discutir las bases con expertos antes de definir nada."
+# the orchestrator runs the facilitate-discovery skill (Discovery mode).
+```
+
+**Where it hands off**:
+- **Existing / mid-project** → the brief feeds `po-analyst` (Phase 1).
+- **Greenfield** → the brief feeds `inti` then `arki` (Bootstrap below).
+
+**When NOT to use Discovery**:
+- The requirement is already clear → go straight to `po-analyst`.
+- You need to map existing code, not ideate → use Brownfield (`amauta`).
+
+**Guardrails** (enforced by the skill): 2–4 experts, default 2 rounds,
+mandatory facilitator synthesis, and every regulatory/legal/standard claim
+tagged `⚠️ VALIDAR con experto humano` — the council reasons about
+structure, it is not the source of truth for NIIF/IFRS, tax law, etc.
 
 ---
 

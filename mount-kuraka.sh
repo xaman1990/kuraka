@@ -49,7 +49,9 @@ for category in agents skills commands hooks; do
     if [ -d "$src" ]; then
         mkdir -p "$dst"
         count_before=$(find "$dst" -maxdepth 1 -name "*.md" -o -name "*.sh" 2>/dev/null | wc -l | tr -d ' ')
-        rsync -a --update "$src/" "$dst/"
+        # *.append.md are project-layer rule fragments (e.g. sie_v2 DD-1031), not
+        # framework agents — they have no frontmatter and must never be mounted as agents.
+        rsync -a --update --exclude='*.append.md' "$src/" "$dst/"
         count_after=$(find "$dst" -maxdepth 1 -name "*.md" -o -name "*.sh" 2>/dev/null | wc -l | tr -d ' ')
         delta=$((count_after - count_before))
         if [ "$delta" -gt 0 ]; then
@@ -115,6 +117,14 @@ if [ -d "$ARTIFACTS_SRC" ]; then
         mkdir -p ".claude/stack-profiles"
         rsync -a --update "$ARTIFACTS_SRC/stack-profiles/" ".claude/stack-profiles/"
         echo "   ✓ stack-profiles/"
+    fi
+
+    # templates/ — framework-supplied templates (e.g. design-brief,
+    # domain-expert for the Discovery/Tinkuy flow; read by the orchestrator)
+    if [ -d "$ARTIFACTS_SRC/templates" ]; then
+        mkdir -p ".claude/templates"
+        rsync -a --update "$ARTIFACTS_SRC/templates/" ".claude/templates/"
+        echo "   ✓ templates/"
     fi
 fi
 

@@ -207,6 +207,7 @@ flowchart TD
 
 | Modo | Cuándo | Fases |
 |------|--------|:-----:|
+| **Discovery** (Design-Thinking) | Solo una idea, sin requerimiento aún | `facilitate-discovery` (concejo Tinkuy) → po-analyst / inti |
 | **Bootstrap** | Proyecto nuevo (solo idea) | `inti` → `arki` → Normal |
 | **Brownfield** | Proyecto existente sin Kuraka | `kuraka-inspect` → `amauta` → Normal |
 | **Normal** | Cambio en proyecto con Kuraka | 8 fases |
@@ -215,6 +216,97 @@ flowchart TD
 | **Retroactive** | Código ya implementado (anti-pattern) | 4 fases |
 
 Detalle de criterios y templates por modo en `skills/kuraka-modes.md`.
+
+---
+
+## Comandos slash (dentro del proyecto)
+
+Una vez montado Kuraka y reiniciado Claude Code, estos comandos quedan
+disponibles en `.claude/commands/`. Todos son **portables**: resuelven el
+vault desde `$KURAKA_VAULT` (con respaldo) y detectan la raíz del proyecto
+buscando `.claude/` hacia arriba, así funcionan en cualquier máquina y desde
+cualquier subdirectorio.
+
+| Comando | Para qué |
+|---|---|
+| `/kuraka-wizard` | **Asistente de arranque.** Detecta el estado (montado, config, código, greenfield/brownfield) y ejecuta o encamina el siguiente paso correcto. Re-ejecutable: cada corrida avanza una etapa y para limpio en los puntos de reinicio. |
+| `/amauta` | **Mapea un proyecto existente** (brownfield) en un paso: corre `kuraka-inspect` si falta y luego invoca al agente `amauta` para generar `kuraka.config.yaml` + `.claude/project/` extrayendo convenciones del código real. |
+| `/kuraka-update` | **Actualiza el framework montado** en este proyecto desde el vault (nuevos agentes/skills/commands/templates). No toca `kuraka.config.yaml`, `.claude/project/` ni `docs/`. |
+| `/kuraka` | Orquesta un ciclo de desarrollo para un requerimiento dado. |
+
+> **Importante**: tras `/kuraka-update` (o cualquier mount) hay que reiniciar
+> Claude Code (`/exit` + sesión nueva) — agentes, skills y commands se
+> registran solo al inicio de sesión.
+
+### Onboarding paso a paso (proyecto existente)
+
+```bash
+# 1. Cold start desde fuera (repo recién clonado, sin nada montado):
+python3 "$KURAKA_VAULT/kuraka-init.py" /ruta/al/proyecto   # inspect + mount + skeleton
+# …o el mount directo:
+bash "$KURAKA_VAULT/mount-kuraka.sh" /ruta/al/proyecto
+
+# 2. Reinicia Claude Code en el proyecto (/exit + sesión nueva)
+
+# 3. En la sesión nueva, deja que el wizard te guíe:
+/kuraka-wizard        # → detecta brownfield-sin-config → invoca amauta
+#   (o directo: /amauta)
+
+# 4. Aprueba la matriz de convenciones de amauta y resuelve los <TODO>.
+#    El proyecto queda listo para /kuraka o para Discovery.
+```
+
+### Actualizar un proyecto que ya tenía Kuraka
+
+```bash
+# La primera vez, un mount manual para traer el comando nuevo:
+bash "$KURAKA_VAULT/mount-kuraka.sh" /ruta/al/proyecto && # reinicia
+# De ahí en adelante, desde la sesión del proyecto:
+/kuraka-update        # trae lo nuevo del vault, valida y te recuerda reiniciar
+```
+
+> **Portabilidad entre máquinas**: el único ajuste por equipo es una línea en
+> `~/.zshrc`: `export KURAKA_VAULT="/ruta/donde/clonaste/kuraka"`. Con eso,
+> `mount-kuraka.sh`, el alias y todos los comandos slash apuntan al lugar
+> correcto. Si no está, caen al respaldo y, si no existe, te avisan en vez de
+> fallar en silencio.
+
+---
+
+## Modo Discovery (Design-Thinking — Tinkuy)
+
+Cuando tienes una **idea, no un requerimiento** ("quiero un software de
+contabilidad") y quieres discutir las bases del sistema con expertos de
+dominio **antes** de definir nada. Es el front-end difuso que se sienta
+*antes* de `po-analyst`.
+
+**Cómo se usa**: en la sesión del proyecto, simplemente plantea la idea:
+
+```
+Tengo una idea, no un requerimiento todavía: {tu idea}.
+Quiero discutir las bases con expertos antes de definir nada.
+```
+
+El orquestador corre la skill `facilitate-discovery` (concejo Tinkuy):
+
+1. **D1** — clasifica el dominio y propone 2–4 expertos (p.ej. contador +
+   admin-finanzas + un escéptico/usuario). Apruebas el concejo.
+2. **D2** — convoca un panel **efímero** (subagentes desechables, **sin
+   reinicio**) y corre rondas diverge/converge; conversas con ellos a través
+   del facilitador, que sintetiza y te devuelve los conflictos.
+3. **D3** — sintetiza `docs/discovery/design-brief-{slug}.md`.
+4. **D4** (opcional) — **promueve** los expertos valiosos a agentes
+   permanentes en `.claude/project/agents/` (un reinicio los registra).
+
+**Híbrido por diseño**: el panel arranca efímero (cero fricción) y solo los
+expertos que valga la pena se vuelven permanentes y reutilizables.
+
+**Guardas**: 2–4 expertos, 2 rondas por defecto, síntesis obligatoria, y todo
+reclamo regulatorio/legal/normativo se marca `⚠️ VALIDAR con experto humano`
+(el concejo razona sobre estructura, no es fuente de verdad para NIIF/IFRS,
+ley tributaria, etc.). El brief alimenta luego a `po-analyst` (proyecto
+existente) o a `inti`/`arki` (greenfield). Detalle en
+`skills/facilitate-discovery.md`.
 
 ---
 
@@ -244,5 +336,5 @@ Uso personal. Compartible con el equipo bajo acuerdo.
 
 ---
 
-*Última revisión: 2026-04-23*
-*Last synced: 2026-05-12 (ciclo LD-unified-mailbox cierre — CROSS-PROVIDER-CONVENTIONS.md añadido en raíz)*
+*Última revisión: 2026-06-07 (modo Discovery/Tinkuy + comandos slash portables: `/kuraka-wizard`, `/amauta`, `/kuraka-update`)*
+*Last synced: 2026-06-04 (session: 4 Mutua Kuraka cycles — nuevoaviso contract/idServicio, outbound handler-rename+e2e, outbound payload §2.6/§2.11 vs PDF, keycloak fallback removal — + RECURRING-ISSUES.md agent-optimization analysis. RETROs, REQs, SMOKE, PENDING synced. Agent prompt patches NOT yet applied — pending user review of RECURRING-ISSUES.md.)*
