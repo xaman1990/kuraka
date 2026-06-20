@@ -1,0 +1,3 @@
+[submodule "kuraka-control"]
+	path = kuraka-control
+	url = https://github.com/xaman1990/kuraka-control.git
