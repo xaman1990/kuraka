@@ -62,7 +62,11 @@ flowchart LR
 
 ```bash
 # clonar el repo (solo la primera vez, en cualquier máquina)
-git clone <url-del-repo> ~/.kuraka
+# --recurse-submodules trae también el Control Plane (kuraka-control/)
+git clone --recurse-submodules <url-del-repo> ~/.kuraka
+
+# si ya clonaste sin --recurse-submodules, recupera el submódulo con:
+#   git -C ~/.kuraka submodule update --init --recursive
 
 # alias en ~/.zshrc
 echo 'alias mount-kuraka="bash ~/.kuraka/mount-kuraka.sh"' >> ~/.zshrc
@@ -313,7 +317,10 @@ existente) o a `inti`/`arki` (greenfield). Detalle en
 ## Qué NO está en este repo
 
 - **Reglas 01–15** del proyecto sie_v2 (convenciones de equipo, viven en el git del proyecto)
-- **Código de aplicación** de ningún proyecto
+- **Código de aplicación** de ningún proyecto consumidor — **excepto el Control Plane**
+  (`kuraka-control/`), que es la app oficial para gobernar el framework y se distribuye
+  como **submódulo git** ([repo](https://github.com/xaman1990/kuraka-control)). Se construye
+  *con* Kuraka (dogfood) y gobierna *a* Kuraka (hub-and-spoke).
 - **REQs, stories, retros** de ciclos específicos (esos viven en el `kipus/` de cada proyecto)
 
 ---
@@ -338,3 +345,7 @@ Uso personal. Compartible con el equipo bajo acuerdo.
 
 *Última revisión: 2026-06-07 (modo Discovery/Tinkuy + comandos slash portables: `/kuraka-wizard`, `/amauta`, `/kuraka-update`)*
 *Last synced: 2026-06-04 (session: 4 Mutua Kuraka cycles — nuevoaviso contract/idServicio, outbound handler-rename+e2e, outbound payload §2.6/§2.11 vs PDF, keycloak fallback removal — + RECURRING-ISSUES.md agent-optimization analysis. RETROs, REQs, SMOKE, PENDING synced. Agent prompt patches NOT yet applied — pending user review of RECURRING-ISSUES.md.)*
+*Last synced: 2026-06-10 (project `clinicaDental2026` (ZYNVET, Angular 19) added to `projects/clinicaDental2026.md` after REQ-20260610-vet-pets Cycle 1 — project-layer patches P1–P5 applied in-repo: review-checks verbatim-payload-fidelity / binding-pitfall-snippets / directed-contract-crosscheck, conventions NG0203 guard, agent appends, lessons LL-001/LL-002.)*
+*Last synced: 2026-06-11 (GuaiHome RETRO-REQ-20260611-mvp1-registro-perito-webhook §6 patches applied — only `skills/kuraka-policies.md` synced here (P2 framework part: "Gate command integrity" no-pipe gate rule). P1/P3/P4/P5/P6/T7/T8 are `.claude/project/` + `.claude/rules/` files, OUTSIDE the backup mapping → applied local-only in-repo, not synced.)*
+*Last synced: 2026-06-15 (project `wacertificadonodeudor` (Yanbal Certificado No Deudor, ASP.NET MVC 5 / .NET Framework 4.8, EF6 database-first, WCF/SOAP) mapped by `amauta` — registry card `projects/wacertificadonodeudor.md` updated from init stub (stack/conventions/risks/TODOs, confidence 0.85). Its `.claude/project/` layer + `kuraka.config.yaml` are in-repo only (OUTSIDE the backup mapping → not mirrored to vault `docs/`); the rule-16 `docs/` rsync was deliberately NOT run — that target is the framework's own docs and `--delete` with this project's skeleton would have clobbered it.)*
+*Last synced: 2026-06-16 (GuaiHome RETRO-REQ-20260616-DD-perito-webhook-audit §6 patches applied — framework agents synced: `agents/story-refiner.md` (P2: size existing functions before adding wiring → pre-authorize named extraction in AC), `agents/backend-developer.md` + `agents/frontend-developer.md` (P3: "Reporting Deviations" — announce + rationale + path-back, never substitute silently). P1 is `.claude/project/lessons-learned.md` (Postgres-only type → SQLite create_all blast radius) — in-repo only, OUTSIDE backup mapping. P4 (CI/CD) not applied per user.)*
