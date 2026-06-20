@@ -1,0 +1,66 @@
+{
+  "req_name": "REQ-20260616-DD-payment-poll-ratelimit",
+  "mode": "reduced",
+  "runs": [
+    {
+      "phase": "4a",
+      "agent": "backend-developer",
+      "mode": "implement-S1-generalize",
+      "total_tokens": 53833,
+      "tool_uses": 20,
+      "duration_ms": 139736,
+      "produced": "rename PERITO_POLL_LIMIT->POLL_LIMIT, rate_limit_perito_poll->rate_limit_poll (bucket cliente:poll); /payment/status now on rate_limit_poll; 3 poll endpoints; wiring tests +2; 382 passed",
+      "budget_ok": true
+    },
+    {
+      "phase": "4b",
+      "agent": "frontend-developer",
+      "mode": "implement-S2",
+      "total_tokens": 56315,
+      "tool_uses": 22,
+      "duration_ms": 130759,
+      "produced": "PagoProcesandoPage interval 3000->5000 + 429 backoff (mirror perito); paymentService 429 transient; 84 tests (+3)",
+      "budget_ok": true
+    },
+    {
+      "phase": "4b-fix",
+      "agent": "frontend-developer",
+      "mode": "fix-typecheck",
+      "total_tokens": 33032,
+      "tool_uses": 6,
+      "duration_ms": 631460,
+      "produced": "fixed pre-existing TS2740 in PeritoProcesando.spec.ts (incomplete PeritoAnalysis mock from prior cycle); type-check exit 0; 84 tests green",
+      "budget_ok": true
+    },
+    {
+      "phase": "5",
+      "agent": "code-reviewer",
+      "mode": "review-implementation",
+      "total_tokens": 82744,
+      "tool_uses": 42,
+      "duration_ms": 246538,
+      "produced": "APPROVED_WITH_MINOR; 0 BLOCKER/IMPORTANT; MINOR stale comment + missing PagoProcesandoPage component test",
+      "budget_ok": true
+    },
+    {
+      "phase": "5.5",
+      "agent": "security-reviewer",
+      "mode": "security-audit",
+      "total_tokens": 73378,
+      "tool_uses": 9,
+      "duration_ms": 58544,
+      "produced": "APPROVED; 0 CRITICAL/HIGH; payment/intent + auth stay 10/min; buckets isolated; IDOR-guarded read",
+      "budget_ok": true
+    },
+    {
+      "phase": "6",
+      "agent": "test-engineer",
+      "mode": "test-writing",
+      "total_tokens": 43851,
+      "tool_uses": 13,
+      "duration_ms": 95568,
+      "produced": "fixed stale comment; PagoProcesandoPage.spec.ts +5; frontend 89 passed; type-check exit 0",
+      "budget_ok": true
+    }
+  ]
+}

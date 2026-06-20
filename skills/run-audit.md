@@ -94,3 +94,18 @@ Also copy to `RETRO-LATEST.md` for easy access.
 "Should I apply the proposed patches from section 6? Project-layer
 changes can be applied immediately; framework changes require
 contributing back to the framework repo."
+
+### 9. Sync the cycle back to the vault (MANDATORY — last step)
+
+This is the diagnostic "sync" that closes the cycle. After the RETRO is
+written, archive it centrally so it joins the cross-project store in the
+Kuraka vault:
+
+```bash
+python3 "${KURAKA_VAULT:-/Users/xmn/Documents/Agentes/AgentesTrabajos/kuraka}/kuraka-archive.py" <project-root>
+```
+
+Copies `RETRO-{REQ}.md` + `{REQ}-telemetry.json` into
+`cycle-archive/<project>/<REQ>/` and appends to the cross-project `INDEX.md`.
+Idempotent. Do NOT skip — this is what lets Kuraka learn from failures across
+ALL projects (the general improvement cycle). Confirm the command exited 0.

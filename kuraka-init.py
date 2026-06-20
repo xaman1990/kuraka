@@ -317,6 +317,8 @@ def main() -> int:
     ap.add_argument("--version", default=DEFAULT_VERSION, help="kuraka_version stamped in registry")
     ap.add_argument("--yes", "-y", action="store_true", help="non-interactive; assume yes")
     ap.add_argument("--no-mount", action="store_true", help="skip mount step")
+    ap.add_argument("--register-only", action="store_true",
+                    help="only inspect + upsert the registry note (no config/skeleton/mount)")
     ap.add_argument("--create", action="store_true", help="create target dir if missing")
     args = ap.parse_args()
 
@@ -373,24 +375,27 @@ def main() -> int:
     # created (empty) skeleton is correctly reported as not-yet-populated.
     has_layer = project_layer_populated(target)
 
-    # 2 + 3 BEFORE mount so mount doesn't warn "ADOPCIÓN INCOMPLETA"
-    write_config(target, build_config(name, mode, insp, confidence_note), args.yes)
-    write_project_skeleton(target, already_populated=has_layer)
+    if not args.register_only:
+        # 2 + 3 BEFORE mount so mount doesn't warn "ADOPCIÓN INCOMPLETA"
+        write_config(target, build_config(name, mode, insp, confidence_note), args.yes)
+        write_project_skeleton(target, already_populated=has_layer)
+        # 4. mount
+        if not args.no_mount:
+            print("", flush=True)
+            rc = run_mount(vault, target)
+            if rc != 0:
+                err(f"❌ mount-kuraka.sh salió con código {rc}")
+                return rc
 
-    # 4. mount
-    if not args.no_mount:
-        print("", flush=True)
-        rc = run_mount(vault, target)
-        if rc != 0:
-            err(f"❌ mount-kuraka.sh salió con código {rc}")
-            return rc
-
-    # 5. registry
+    # 5. registry (always)
     print("")
     upsert_registry(vault, name, target, insp, mode, args.version, has_layer)
 
     # final
     print("")
+    if args.register_only:
+        print("✅ registrado en el vault (solo registro).")
+        return 0
     print("✅ kuraka-init completo.")
     print("")
     print("   ÚNICO paso manual restante:")

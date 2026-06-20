@@ -1,0 +1,56 @@
+{
+  "req_name": "REQ-20260617-perito-horarios-calendario",
+  "mode": "reduced",
+  "runs": [
+    {
+      "phase": "1+2",
+      "agent": "po-analyst",
+      "mode": "LITE_COMBINED",
+      "total_tokens": 60603,
+      "tool_uses": 5,
+      "duration_ms": 125694,
+      "produced": "REQ-LITE-20260617-perito-horarios-calendario.md (2 stories: S1 composable+holidays+tests, S2 SlotModal+Horarios+store). GATE0 passed.",
+      "budget_ok": true
+    },
+    {
+      "phase": "4b",
+      "agent": "frontend-developer",
+      "mode": "implement-story S1",
+      "total_tokens": 53587,
+      "tool_uses": 19,
+      "duration_ms": 310484,
+      "produced": "lib/useWorkdayCalendar.ts (pure: weekend/national-holiday/firstWorkday/monthGrid, today injectable) + 33 unit tests. vitest 127 passed, type-check exit 0.",
+      "budget_ok": true
+    },
+    {
+      "phase": "4b",
+      "agent": "frontend-developer",
+      "mode": "implement-story S2",
+      "total_tokens": 71643,
+      "tool_uses": 19,
+      "duration_ms": 170349,
+      "produced": "SlotModal.vue (calendar+3 windows) + PeritoHorarios rework (list+modal) + peritoStore shape change (DraftSlot[], addSlot/removeSlot) + spec updated. vitest 130 passed, type-check exit 0.",
+      "budget_ok": true
+    },
+    {
+      "phase": "5",
+      "agent": "code-reviewer",
+      "mode": "review-implementation 6D",
+      "total_tokens": 80038,
+      "tool_uses": 67,
+      "duration_ms": 306611,
+      "produced": "APPROVED_WITH_FIXES: 3 IMPORTANT (recap card AC20, iso UTC off-by-one, focus trap), 2 MINOR + 2 test-hardening, 4 PRAISE.",
+      "budget_ok": true
+    },
+    {
+      "phase": "5",
+      "agent": "frontend-developer",
+      "mode": "apply-review-fixes",
+      "total_tokens": 61891,
+      "tool_uses": 31,
+      "duration_ms": 157976,
+      "produced": "Fixed all 7 findings (recap card, local iso + export toLocalDateString, focus trap, 44px, past-month guard, 2 test hardenings). type-check exit 0, vitest 131 passed.",
+      "budget_ok": true
+    }
+  ]
+}

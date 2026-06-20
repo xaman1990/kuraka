@@ -221,3 +221,11 @@ echo ""
 echo "  3. Invoca el Kuraka cuando empieces un requerimiento:"
 echo "     /kuraka o referencia skills/kuraka.md en el chat"
 echo ""
+
+# --- auto-register in the vault registry (best-effort; never fail the mount on this) ---
+if [ -f "$VAULT/kuraka-init.py" ]; then
+    if python3 "$VAULT/kuraka-init.py" --target "$TARGET" --register-only --yes >/dev/null 2>&1; then
+        echo "   ✓ registrado en el registro del vault (projects/)"
+        echo ""
+    fi
+fi

@@ -175,6 +175,20 @@ Present the retro to the user and ask:
 changes can be applied immediately; framework changes require
 contributing back to the framework repo."
 
+**Then archive this cycle centrally** (the diagnostic half of the cycle's
+sync). After the RETRO is written, pull it + this cycle's telemetry back
+into the Kuraka vault so it joins the cross-project archive:
+
+```bash
+python3 "${KURAKA_VAULT:-/Users/xmn/Documents/Agentes/AgentesTrabajos/kuraka}/kuraka-archive.py" <project-root>
+```
+
+This copies `RETRO-{REQ}.md` + `{REQ}-telemetry.json` into
+`<vault>/cycle-archive/<project>/<REQ>/` and appends to the cross-project
+`INDEX.md`. It is idempotent. Why it matters: it lets `pattern-detector`
+later analyze where Kuraka failed across **all** projects — not just this
+one — feeding the general improvement cycle of the agents and bases.
+
 ## Output Validation
 
 Before returning, run the `verify-output` skill against the RETRO document.

@@ -1,0 +1,36 @@
+{
+  "req_name": "REQ-20260613-permission-route-normalize",
+  "mode": "reduced-by-risk",
+  "runs": [
+    {
+      "phase": "1",
+      "agent": "po-analyst",
+      "mode": "combined-req-story",
+      "total_tokens": 89051,
+      "tool_uses": 2,
+      "duration_ms": 63678,
+      "produced": "REQ-20260613-permission-route-normalize.md (bug root cause + S1 normalizePath story, zero-regression AC)",
+      "budget_ok": true
+    },
+    {
+      "phase": "4b",
+      "agent": "frontend-developer",
+      "mode": "implement-story",
+      "total_tokens": 69214,
+      "tool_uses": 4,
+      "duration_ms": 30613,
+      "produced": "normalizePath helper + 2 call-site edits in permissions.service.ts; ng build PASS; commit 108bc87",
+      "budget_ok": true
+    },
+    {
+      "phase": "5",
+      "agent": "code-reviewer",
+      "mode": "review+security-folded",
+      "total_tokens": 74027,
+      "tool_uses": 6,
+      "duration_ms": 62028,
+      "produced": "APPROVED_WITH_MINOR; 1 IMPORTANT (normalizePath('') should return '/'); 0 CRITICAL/escalation",
+      "budget_ok": true
+    }
+  ]
+}

@@ -1,0 +1,186 @@
+{
+  "req_name": "REQ-20260610-vet-pets",
+  "mode": "normal",
+  "runs": [
+    {
+      "phase": "1",
+      "agent": "po-analyst",
+      "mode": "analyze-requirement + requirement-consistency-check",
+      "total_tokens": 109043,
+      "tool_uses": 21,
+      "duration_ms": 499730,
+      "produced": "REQ-20260610-vet-pets.md; GATE0 BLOCKED -> RESOLVED; 11 stories; 2-cycle phasing",
+      "budget_ok": true
+    },
+    {
+      "phase": "2",
+      "agent": "story-refiner",
+      "mode": "refine-stories (Cycle 1: S1-S6)",
+      "total_tokens": 122574,
+      "tool_uses": 44,
+      "duration_ms": 447428,
+      "produced": "6 story files S1-S6 with AC, file paths, API contracts, TS types, i18n keys",
+      "budget_ok": true
+    },
+    {
+      "phase": "2.5",
+      "agent": "test-engineer",
+      "mode": "TEST_PLANNING (plan-tests)",
+      "total_tokens": 103067,
+      "tool_uses": 18,
+      "duration_ms": 190214,
+      "produced": "TEST-PLAN-REQ-20260610-vet-pets.md; 28 tests across S1-S5, testability constraints + fixtures",
+      "budget_ok": true
+    },
+    {
+      "phase": "3",
+      "agent": "architect-reviewer",
+      "mode": "review-stories + schema-freeze",
+      "total_tokens": 148865,
+      "tool_uses": 20,
+      "duration_ms": 161331,
+      "produced": "APPROVED_WITH_MINOR; SCHEMA-FROZEN-REQ-20260610-vet-pets.md; 1 MINOR actionable (S6 route), 2 minor improvements (S5 edit-mode, S3 fallback comment)",
+      "budget_ok": true
+    },
+    {
+      "phase": "4b",
+      "agent": "frontend-developer",
+      "mode": "implement-story S1 (interfaces+constants)",
+      "total_tokens": 78206,
+      "tool_uses": 14,
+      "duration_ms": 104852,
+      "produced": "5 files (pet/allergy/disease/authorized-person interfaces + pets.constants); ng build green; commit ec1ae96",
+      "budget_ok": true
+    },
+    {
+      "phase": "4b",
+      "agent": "frontend-developer",
+      "mode": "implement-story S2 (services)",
+      "total_tokens": 79573,
+      "tool_uses": 15,
+      "duration_ms": 682339,
+      "produced": "4 services with verbatim casing (upd-Allergies, add-disease); ng build green; commit c5a13d7",
+      "budget_ok": true
+    },
+    {
+      "phase": "4b",
+      "agent": "frontend-developer",
+      "mode": "implement-story S3 (Cliente-Detalle list-host)",
+      "total_tokens": 107489,
+      "tool_uses": 41,
+      "duration_ms": 256798,
+      "produced": "CustomerDetailComponent + pet-modal stub + routing + i18n; ng build green",
+      "budget_ok": true
+    },
+    {
+      "phase": "4b",
+      "agent": "frontend-developer",
+      "mode": "S3 routing fix (architect #1 — single path:customer nesting)",
+      "total_tokens": 65812,
+      "tool_uses": 8,
+      "duration_ms": 40783,
+      "produced": "fixed dead sibling route; /vet/customer/:customerHash/pets nested; ng build green; commit 2a482fa",
+      "budget_ok": true
+    },
+    {
+      "phase": "4b",
+      "agent": "frontend-developer",
+      "mode": "implement-story S4 (pet modal shell + B5 cascade)",
+      "total_tokens": 107685,
+      "tool_uses": 39,
+      "duration_ms": 234851,
+      "produced": "PetModalComponent shell (12 base fields, masterargu selects, breed cascade, photo:null); ng build green; commit 5180442",
+      "budget_ok": true
+    },
+    {
+      "phase": "4b",
+      "agent": "frontend-developer",
+      "mode": "implement-story S5 (inline FormArray sub-sections)",
+      "total_tokens": 107767,
+      "tool_uses": 40,
+      "duration_ms": 4168459,
+      "produced": "3 sub-components (allergy/disease/authorized) feeding add-pet nested arrays; edit-mode hide; ng build green; commit ddc80c1. NOTE: authorized field-set gap flagged for Phase 5",
+      "budget_ok": true
+    },
+    {
+      "phase": "4b",
+      "agent": "frontend-developer",
+      "mode": "implement-story S6 (nav/viewPets/i18n/icons)",
+      "total_tokens": 94183,
+      "tool_uses": 36,
+      "duration_ms": 148956,
+      "produced": "viewPets nav + eye action (ACTIONS.VER existed), Mascotas nav entry, i18n 0-missing, icons verified; ng build green; commit 02712d0",
+      "budget_ok": true
+    },
+    {
+      "phase": "5",
+      "agent": "code-reviewer",
+      "mode": "review-implementation (6D, directed payload cross-check)",
+      "total_tokens": 138531,
+      "tool_uses": 86,
+      "duration_ms": 408858,
+      "produced": "CHANGES_REQUIRED; 1 BLOCKER (injection context), 6 IMPORTANT (authorized 14-field/INT, pet_sex_hash, created_by, error handlers, modal customerHash, tests), 4 minor, 4 praise",
+      "budget_ok": true
+    },
+    {
+      "phase": "5",
+      "agent": "frontend-developer",
+      "mode": "apply review fixes (BLOCKER + IMPORTANT)",
+      "total_tokens": 113767,
+      "tool_uses": 43,
+      "duration_ms": 335891,
+      "produced": "6 fixes (runInInjectionContext, pet_sex_hash, authorized 14-field/INT, error handlers, modal customerHash, sort); ng build green; commit 5aac2f5",
+      "budget_ok": true
+    },
+    {
+      "phase": "5",
+      "agent": "code-reviewer",
+      "mode": "focused re-review of fix commit 5aac2f5",
+      "total_tokens": 94058,
+      "tool_uses": 50,
+      "duration_ms": 189281,
+      "produced": "APPROVED_WITH_MINOR; BLOCKER resolved + all 6 fixes PASS; 3 MINOR (validate-in-vivo placeholders); no new BLOCKER/IMPORTANT",
+      "budget_ok": true
+    },
+    {
+      "phase": "5.5",
+      "agent": "security-reviewer",
+      "mode": "security-audit (OWASP, tenant, PII, secrets)",
+      "total_tokens": 117432,
+      "tool_uses": 19,
+      "duration_ms": 131851,
+      "produced": "PASS — no CRITICAL/HIGH; tenant isolation correct, 0 PII/token leak, 7/7 controls gated, 0 secrets; 1 LOW (company_hash optional in types)",
+      "budget_ok": true
+    },
+    {
+      "phase": "6",
+      "agent": "test-engineer",
+      "mode": "TEST_WRITING (48 unit tests)",
+      "total_tokens": 142031,
+      "tool_uses": 60,
+      "duration_ms": 928539,
+      "produced": "6 spec files, 48 tests all pass on ChromeHeadless (verbatim URLs, B3 hash payload, pet_sex_hash, authorized 14-field INT, state flags, backendError); ng build green; commit 1ac3fcd",
+      "budget_ok": true
+    },
+    {
+      "phase": "6.8",
+      "agent": "orchestrator+playwright",
+      "mode": "live authenticated smoke (no Agent — omit per policy, noted for completeness)",
+      "total_tokens": 0,
+      "tool_uses": 0,
+      "duration_ms": 0,
+      "produced": "GREEN — login->Ver mascotas->pets screen (F13 error on list-pet 500)->Nueva mascota modal->Agregar persona WITHOUT NG0203 (BLOCKER verified live)",
+      "budget_ok": true
+    },
+    {
+      "phase": "7",
+      "agent": "final-auditor",
+      "mode": "run-audit",
+      "total_tokens": 109378,
+      "tool_uses": 15,
+      "duration_ms": 307246,
+      "produced": "RETRO-REQ-20260610-vet-pets.md; ~1.73M tokens/16 runs; 3 rework episodes; 5 project-layer patches P1-P5 proposed",
+      "budget_ok": true
+    }
+  ]
+}

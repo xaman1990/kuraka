@@ -21,6 +21,12 @@ that coordinates 16 subagents across an 8-phase dev lifecycle.
 # future control-plane web app wraps this). Never overwrites an existing config/layer.
 python3 kuraka-init.py [target_dir]                  # or: --target ... --name ... --yes
 python3 kuraka-init.py --target /path --name foo --yes --no-mount
+python3 kuraka-init.py --target /path --register-only --yes   # only upsert the registry note
+
+# Discover ALL Kuraka-mounted projects on disk and reconcile the registry (both ways:
+# mounted-but-unregistered, and registered-but-not-mounted). mount-kuraka.sh now also
+# auto-registers, so new mounts never drift. Read-only without --register.
+python3 kuraka-discover.py [--register] [--roots ~/Desarrollos,~/work]
 
 # Mount the vault into a consumer project (copies agents/skills/rules/artifacts into
 # .claude/ and updates .gitignore of the target). Always run in the target repo root.
@@ -35,6 +41,11 @@ python3 kuraka-inspect.py [target_dir]       # JSON to stdout, summary to stderr
 
 # Aggregated telemetry dashboard across cycles
 python3 aggregate-telemetry.py [project_root]  # writes docs/process/agent-telemetry/DASHBOARD.md
+
+# Pull a project's cycle diagnostics (RETRO + telemetry) BACK into the vault's central
+# cross-project archive. Run after a cycle's Final Audit (Phase 7); the final-auditor
+# also calls this on completion. Idempotent. Feeds cross-project pattern-detection.
+python3 kuraka-archive.py [project_root]        # writes cycle-archive/<project>/<REQ>/
 
 # Structural eval harness (runs from a consumer project that has mounted the artifacts)
 cd <target-project> && python3 -m pytest tests/kuraka/ -v

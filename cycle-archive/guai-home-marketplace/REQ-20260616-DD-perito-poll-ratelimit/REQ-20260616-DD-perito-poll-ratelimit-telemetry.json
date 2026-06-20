@@ -1,0 +1,66 @@
+{
+  "req_name": "REQ-20260616-DD-perito-poll-ratelimit",
+  "mode": "reduced",
+  "runs": [
+    {
+      "phase": "1+2",
+      "agent": "po-analyst",
+      "mode": "LITE_COMBINED",
+      "total_tokens": 68384,
+      "tool_uses": 5,
+      "duration_ms": 68381,
+      "produced": "REQ-LITE + S1(backend bucket PERITO_POLL_LIMIT=60) + S2(frontend interval+429 backoff) + test note (testing disables rate limit -> wiring assertion)",
+      "budget_ok": true
+    },
+    {
+      "phase": "4a",
+      "agent": "backend-developer",
+      "mode": "implement-S1",
+      "total_tokens": 56035,
+      "tool_uses": 20,
+      "duration_ms": 207485,
+      "produced": "PERITO_POLL_LIMIT=60 bucket cliente:perito_poll; status(L318)+result(L354) -> rate_limit_perito_poll; 7 mutating endpoints unchanged; 373 passed",
+      "budget_ok": true
+    },
+    {
+      "phase": "4b",
+      "agent": "frontend-developer",
+      "mode": "implement-S2",
+      "total_tokens": 50882,
+      "tool_uses": 19,
+      "duration_ms": 141811,
+      "produced": "POLL_INTERVAL_MS 3000->5000 + RATE_LIMIT_BACKOFF_MS 3000; 429 handled as transient in getStatus/getResult + PeritoProcesando; 202/FIX-18 intact; 76 tests pass (+4 429 cases); lint exit127 eslint-not-installed (pre-existing)",
+      "budget_ok": true
+    },
+    {
+      "phase": "5",
+      "agent": "code-reviewer",
+      "mode": "review-implementation",
+      "total_tokens": 68282,
+      "tool_uses": 38,
+      "duration_ms": 1731291,
+      "produced": "APPROVED_WITH_MINOR; 0 BLOCKER/IMPORTANT; 2 MINOR test-gaps -> Phase 6",
+      "budget_ok": true
+    },
+    {
+      "phase": "5.5",
+      "agent": "security-reviewer",
+      "mode": "security-audit",
+      "total_tokens": 64823,
+      "tool_uses": 13,
+      "duration_ms": 86865,
+      "produced": "APPROVED; 0 CRITICAL/HIGH; mutations/auth/payments stay 10/min; buckets isolated; backoff UX-only",
+      "budget_ok": true
+    },
+    {
+      "phase": "6",
+      "agent": "test-engineer",
+      "mode": "test-writing",
+      "total_tokens": 82844,
+      "tool_uses": 39,
+      "duration_ms": 312071,
+      "produced": "backend test_rate_limit_wiring.py (+7, 380 passed); frontend PeritoProcesando.spec.ts (+5, 81 passed)",
+      "budget_ok": true
+    }
+  ]
+}

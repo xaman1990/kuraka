@@ -76,8 +76,16 @@ solución") = the vault owns `agents/*.md`; projects only ever get read-only cop
 
 This systematizes the manual P1–P6 exercise done on 2026-06-06 (see `RECURRING-ISSUES`).
 
+**Cross-project data source — `cycle-archive/`:** at every cycle's Final Audit (Phase 7),
+`final-auditor` runs `kuraka-archive.py <project>`, which pulls that cycle's RETRO +
+telemetry back into `cycle-archive/<project>/<REQ>/` and appends to a cross-project
+`INDEX.md`. This is the central memory of "where did Kuraka fail" across ALL projects —
+what lets `pattern-detector` find SYSTEMIC failures (not just per-project ones) and drive
+a general improvement of the agents and bases.
+
 ```
-RETRO in project  →  pattern-detector  →  RECURRING-ISSUES report
+RETRO in project  →  kuraka-archive.py  →  cycle-archive/ (vault, all projects)
+                  →  pattern-detector (cross-project)  →  RECURRING-ISSUES report
    →  [ TRIAGE in the front ]  →  routing decision per finding:
           framework fix?  → edit vault agent  (affects ALL projects)
           project fix?    → edit that project's project-layer (scoped)
@@ -173,6 +181,14 @@ interactive or flag-driven (`--target --name --yes`), and:
 
 **The control-plane web app's "onboard/mount" action wraps this script** (Phase 1,
 §3) — the wizard backend is already built.
+
+### Registry auto-discovery (done)
+The registry was manual, so projects mounted with the old `mount-kuraka.sh` flow drifted
+out of view. Fixed:
+- `mount-kuraka.sh` now **auto-registers** every mount (`kuraka-init.py --register-only`).
+- `kuraka-discover.py` scans the filesystem for the Kuraka marker and **reconciles** the
+  registry both ways: mounted-but-unregistered (fix with `--register`) and
+  registered-but-not-mounted (drift, reported only).
 
 ### Still-planned script enhancements
 - `aggregate-telemetry.py`: optional `--registry` mode to iterate `projects/*.md`

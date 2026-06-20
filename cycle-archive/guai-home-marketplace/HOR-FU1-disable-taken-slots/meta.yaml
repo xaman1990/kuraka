@@ -1,0 +1,6 @@
+project: guai-home-marketplace
+req: HOR-FU1-disable-taken-slots
+archived_at: 2026-06-18
+source_retro: /Users/xmn/Desarrollos/GuaiHome/Guai_Home_Marketplace/docs/process/agent-retrospectives/RETRO-HOR-FU1-disable-taken-slots.md
+has_telemetry: false
+verdict: "HIGH"
