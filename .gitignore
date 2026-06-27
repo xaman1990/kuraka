@@ -44,3 +44,11 @@ rules/15-*.md
 *.swo
 __pycache__/
 .pytest_cache/
+
+# ---------------------------------------------------------------------------
+# Analyzed-project data: subdirectories under projects/ hold per-project
+# discovery/scaffold output (e.g. projects/clinica-dental-2026/). Ignore the
+# subdirectories but KEEP the projects/*.md registry entries (the control plane
+# reads them). Supersedes the old per-file clinica-dental ignore.
+# ---------------------------------------------------------------------------
+projects/*/
