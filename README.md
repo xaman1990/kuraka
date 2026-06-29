@@ -6,8 +6,20 @@
 
 Sistema portable de agentes especializados para Claude Code. Se monta en
 cualquier proyecto (nuevo o existente) mediante `mount-kuraka.sh`, detecta
-stack con `kuraka-inspect.py`, y orquesta un workflow de 8 fases con 16
-agentes. Reduce ~55% de tokens por ciclo vs. un workflow ingenuo.
+stack con `kuraka-inspect.py`, y orquesta un workflow de 8 fases con 18
+agentes. Reduce ~55% de tokens por ciclo vs. un workflow ingenuo (y más con
+RTK activo: 70–90% en operaciones de dev).
+
+**Lo que aporta el diseño actual:**
+- **Aprendizaje cross-proyecto**: cada ciclo audita (RETRO) y se respalda al
+  vault central; `pattern-detector` consolida si un fallo es de un proyecto o
+  de todos, y se ajustan los agentes/skills base (las "4 olas" de optimización —
+  ver `KURAKA-OPTIMIZATION-REPORT.md`).
+- **Store central unificado** (`projects/<slug>/`): conserva la historia de
+  Kuraka de cada proyecto **fuera del git de la solución**; al cambiar de rama
+  se restaura sin perder nada (`kuraka-backup.py` / `kuraka-restore.py`).
+- **Componentes recomendados** (RTK, ui-ux-pro-max, Playwright MCP…) que el
+  instalador sugiere y detecta — ver `RECOMMENDED-COMPONENTS.md`.
 
 ---
 
@@ -21,12 +33,12 @@ que se *montan* en cualquier proyecto consumidor.
 flowchart LR
     subgraph Vault["🪢 Kuraka Vault (este repo)"]
         direction TB
-        VA["agents/<br/>16 .md"]
-        VS["skills/<br/>21 .md"]
+        VA["agents/<br/>18 .md"]
+        VS["skills/<br/>26 .md"]
         VC["commands/*.md"]
         VR["rules/16-18.md"]
-        VK["kuraka-artifacts/<br/>docs + tests"]
-        VSC["scripts/<br/>sync-obsidian.sh"]
+        VK["kuraka-artifacts/<br/>docs + tests + stack-profiles"]
+        VSC["scripts py/sh<br/>mount · init · backup · restore"]
     end
 
     subgraph Project["📦 Consumer Project"]
@@ -58,34 +70,101 @@ flowchart LR
 
 ---
 
-## Instalación rápida
+## Instalación rápida (one-shot, estilo `rtk init`)
+
+**Equipo nuevo — UN solo comando** (clona + instala el CLI):
 
 ```bash
-# clonar el repo (solo la primera vez, en cualquier máquina)
-# --recurse-submodules trae también el Control Plane (kuraka-control/)
-git clone --recurse-submodules <url-del-repo> ~/.kuraka
-
-# si ya clonaste sin --recurse-submodules, recupera el submódulo con:
-#   git -C ~/.kuraka submodule update --init --recursive
-
-# alias en ~/.zshrc
-echo 'alias mount-kuraka="bash ~/.kuraka/mount-kuraka.sh"' >> ~/.zshrc
-echo 'alias validate-kuraka="bash ~/.kuraka/validate-kuraka.sh"' >> ~/.zshrc
-echo 'alias kuraka-inspect="python3 ~/.kuraka/kuraka-inspect.py"' >> ~/.zshrc
-echo 'alias kuraka-dashboard="python3 ~/.kuraka/aggregate-telemetry.py"' >> ~/.zshrc
-
-# uso en un proyecto
-cd /ruta/a/mi-proyecto
-mount-kuraka          # monta agentes, skills, rules personales, tests, gitignore
-/exit                  # reinicia Claude Code para que registre los subagentes
-# nueva sesión: el Kuraka ya está disponible
+curl -fsSL https://raw.githubusercontent.com/xaman1990/kuraka/main/install.sh | bash
+#   (para elegir carpeta:  ... | bash -s -- ~/dev/kuraka )
 ```
+
+Eso clona el vault en `~/.kuraka`, setea `KURAKA_VAULT` y deja el comando
+`kuraka` en el PATH. Abrí una terminal nueva (o `source ~/.zshrc`) y listo.
+
+Luego, desde cualquier solución:
+
+```bash
+# (recomendado) RTK — ahorra 70–90% de tokens, hook transparente
+brew install rtk && rtk init -g
+
+cd /ruta/a/mi-proyecto
+kuraka mount            # monta acá   (o:  kuraka mount /otra/ruta)
+#   ↳ si el central ya tiene historia de este proyecto, te ofrece restaurarla
+# reiniciá Claude Code (/exit + sesión nueva) para registrar los subagentes
+```
+
+> Si preferís clonar a mano: `git clone --recurse-submodules
+> https://github.com/xaman1990/kuraka.git ~/.kuraka && ~/.kuraka/install.sh`
+> (el mismo `install.sh` detecta el clon y no vuelve a descargar).
+
+Esto reemplaza el flujo viejo (entrar al vault, abrir Claude ahí, indicar dónde
+montar). Ahora `kuraka mount` se llama **desde la solución** (o con la ruta como
+argumento). `kuraka doctor` verifica el setup.
+
+```text
+kuraka mount [dir]     montar/actualizar aquí (o en dir)
+kuraka init  [dir]     instalación completa (inspect+config+skeleton+mount+registro)
+kuraka update          actualizar el framework del proyecto actual
+kuraka backup|restore  respaldar / restaurar historia contra el store central
+kuraka inspect|discover|dashboard|validate|doctor
+```
+
+> Para una instalación guiada del proyecto (config + capa `.claude/project` desde
+> el código real), `kuraka init` corre inspect + config + skeleton + mount +
+> registro y al final **lista los componentes recomendados y detecta cuáles ya
+> tenés** (RTK se detecta solo; skills/MCP como ui-ux-pro-max se instalan desde el
+> marketplace de plugins de Claude Code).
+
+> **Fallback manual** (sin `install.sh`): `export KURAKA_VAULT="$HOME/.kuraka"` en
+> `~/.zshrc` y usá los scripts directo (`bash $KURAKA_VAULT/mount-kuraka.sh <dir>`).
+
+---
+
+## Flujo de uso completo (ciclo de vida)
+
+```mermaid
+flowchart TD
+    I["1 · Instalar (una vez)<br/>curl …/install.sh | bash  +  RTK (rtk init -g)"] --> M
+    M["2 · Montar en el proyecto<br/>kuraka mount  (o kuraka init)<br/>↳ ofrece restaurar historia del central"] --> R["3 · Reiniciar Claude Code<br/>(/exit + sesión nueva → registra subagentes)"]
+    R --> O["4 · Onboarding (1ª vez)<br/>/kuraka-wizard → /amauta (brownfield)<br/>o inti→arki (greenfield)"]
+    O --> C["5 · Trabajar un requerimiento<br/>/kuraka → 8 fases (o modo reducido)"]
+    C --> A["6 · Cierre de ciclo (Phase 7)<br/>final-auditor: RETRO + telemetría<br/>↳ kuraka-backup.py → store central"]
+    A --> L["7 · Aprendizaje cross-proyecto<br/>pattern-detector consolida → ajustes al vault"]
+    L -->|nuevo ciclo| C
+    A -.->|cambio de rama| SW["git switch + mount-kuraka<br/>↳ '¿restaurar historia? s/n' (kuraka-restore.py)"]
+    SW --> C
+    L -.->|mejoras del framework| U["/kuraka-update en cada solución<br/>baja agentes/skills/commands nuevos"]
+    U --> C
+
+    style I fill:#fff4a3
+    style A fill:#c7f0c7
+    style L fill:#f5f0e8
+    style SW fill:#e8f0f5
+    style U fill:#d5f0d5
+```
+
+| Paso | Qué corre | Resultado |
+|------|-----------|-----------|
+| 1. Instalar (una vez) | `curl -fsSL …/install.sh \| bash`, `rtk init -g` | clona el vault + CLI `kuraka` en el PATH + `KURAKA_VAULT` seteado + ahorro de tokens activo |
+| 2. Montar | `kuraka mount` (o `kuraka init`) desde la solución | copia el framework al `.claude/` del proyecto; si hay historia en el central, **ofrece restaurarla** |
+| 3. Reiniciar | `/exit` + sesión nueva | Claude Code registra los subagentes/commands |
+| 4. Onboarding | `/kuraka-wizard` → `/amauta` (o `inti`/`arki`) | `kuraka.config.yaml` + `.claude/project/` desde el código real |
+| 5. Ciclo | `/kuraka` | feature implementada con las 8 fases (o el modo que toque) |
+| 6. Cierre | `final-auditor` (Phase 7) | RETRO + telemetría + **backup al store central** (`kuraka-backup.py`) |
+| 7. Aprendizaje | `pattern-detector` / `/kuraka-update` | consolida fallos cross-proyecto → ajusta el vault → baja a las soluciones |
+
+**Persistencia fuera del git de la solución:** vos commiteás solo tu código
+fuente; lo de Kuraka (REQ, stories, schemas, capa `.claude/project`, RETROs)
+queda en el `.claude/`/`docs/process` del proyecto (gitignored) **y** respaldado
+en el store central. Al cambiar/crear rama, `mount-kuraka` detecta la historia y
+te ofrece re-pegarla — así no se pierde nada aunque nunca subas Kuraka a git.
 
 ---
 
 ## Componentes
 
-### Agentes (`agents/`, 16 en total)
+### Agentes (`agents/`, 18 en total)
 
 **Workflow core (13)**:
 - `po-analyst` — Phase 1: análisis de requerimiento
@@ -105,6 +184,10 @@ mount-kuraka          # monta agentes, skills, rules personales, tests, gitignor
 - `inti` — greenfield discovery (entrevista → vision + requirements)
 - `arki` — greenfield architecture (discovery → stack proposal + scaffolding)
 
+**Seguridad / remediación (2)**:
+- `checkmarx-remediation` — abre Checkmarx (Playwright), confirma findings SAST/SCA y remedia
+- `pentest-auditor` — auditoría de pentest sobre el cambio
+
 **Model routing**: opus (juicio), sonnet (impl/balanced), haiku (mecánico).
 
 ### Skills (`skills/`)
@@ -118,16 +201,26 @@ mount-kuraka          # monta agentes, skills, rules personales, tests, gitignor
 
 | Script | Función |
 |---|---|
-| `mount-kuraka.sh` | Monta el Kuraka en un proyecto (rsync + gitignore + restore de artifacts) |
+| `install.sh` | **Setup de máquina (una vez)**: registra `KURAKA_VAULT` + pone el CLI `kuraka` en el PATH |
+| `kuraka` | **CLI único**: `mount`/`init`/`update`/`backup`/`restore`/`inspect`/`discover`/`dashboard`/`validate`/`doctor` |
+| `kuraka-init.py` | **Instalador one-shot de proyecto**: inspect → config → skeleton → mount → registro + recomienda componentes |
+| `mount-kuraka.sh` | Monta el Kuraka en un proyecto (rsync + gitignore) y **ofrece restaurar historia** del central |
+| `kuraka-backup.py` | Snapshot del estado Kuraka del proyecto → store central (`layer`+`state`+`cycles`, etiqueta rama) |
+| `kuraka-restore.py` | Restaura la historia del central → proyecto (pregunta; no pisa sin `--force`) |
+| `kuraka-archive.py` | Archiva solo los diagnósticos de ciclo (wrapper cycles-only de backup) |
+| `kuraka-discover.py` | Descubre proyectos montados en disco y reconcilia el registro |
 | `validate-kuraka.sh` | Valida frontmatter de agentes/skills + refs huérfanas |
-| `kuraka-inspect.py` | Detector de stack (backend/frontend/DB/testing/CI/containers) |
-| `aggregate-telemetry.py` | Dashboard agregado de tokens/tiempo multi-ciclo |
+| `kuraka-inspect.py` | Detector de stack (backend/frontend/DB/testing/CI/containers, monorepo) |
+| `aggregate-telemetry.py` | Dashboard agregado de tokens/tiempo multi-ciclo (compute vs wall-clock) |
+| `kuraka_common.py` | Módulo compartido: identidad única (`project_slug`) + rutas del store |
 
 ### Rules personales (`rules/`)
 
 Solo las meta-reglas del sistema Kuraka:
-- `16-agent-backup.md` — sync a Obsidian vault
-- `17-kuraka-token-optimizations.md` — patrones T1–T5 de ahorro de tokens
+- `16-agent-backup.md` — sync a Obsidian vault / backup
+- `17-kuraka-token-optimizations.md` — patrones T1–T8 de ahorro de tokens
+  (digest, end-only typecheck, mapping-table, gate-integrity, fix-run/reviewer digest…)
+- `18-duplication-aware-refactor.md` — refactor consciente de duplicación
 
 Las reglas 01–15 son convenciones de código **específicas del proyecto** y
 viven en el git del proyecto, no aquí.
@@ -135,9 +228,26 @@ viven en el git del proyecto, no aquí.
 ### Artifacts (`kuraka-artifacts/`)
 
 Restaurados a cualquier proyecto via `mount-kuraka.sh`:
+- `stack-profiles/` — guía idiomática por stack (`python-fastapi`, `vue-pinia`,
+  `angular`, `express`, `react`) + `_template.md` para nuevos
 - `docs/process/lessons-learned.md` — lecciones indexadas como `[LL-NNN]`
 - `docs/process/agent-telemetry/DASHBOARD.md` — plantilla del dashboard
 - `tests/kuraka/` — suite pytest de validación estructural
+
+### Componentes recomendados (`RECOMMENDED-COMPONENTS.md`)
+
+Kuraka funciona sin ellos, pero rinden mucho mejor con:
+
+| Componente | Prioridad | Quién lo usa | Para qué |
+|---|:--:|---|---|
+| **RTK** (rtk-ai/rtk) | 🔴 | todos los agentes | proxy CLI por hook transparente; 70–90% menos tokens en bash/test/grep |
+| **ui-ux-pro-max** | 🟡 | `frontend-developer` | inteligencia de diseño UI/UX |
+| **Playwright MCP** | 🟡 | `e2e-tester`, `checkmarx-remediation` | tests de navegador + login en vivo |
+| **impeccable** | ⚪ | frontend | auditoría/pulido visual |
+
+`kuraka-init.py` los lista y detecta al instalar. RTK se activa con `rtk init -g`
+(hook global) — sin cablear nada en los agentes. Para chequeos byte-exactos de
+contrato los agentes usan `rtk proxy <cmd>` (salida cruda, sin truncar).
 
 ---
 
@@ -236,6 +346,7 @@ cualquier subdirectorio.
 | `/kuraka-wizard` | **Asistente de arranque.** Detecta el estado (montado, config, código, greenfield/brownfield) y ejecuta o encamina el siguiente paso correcto. Re-ejecutable: cada corrida avanza una etapa y para limpio en los puntos de reinicio. |
 | `/amauta` | **Mapea un proyecto existente** (brownfield) en un paso: corre `kuraka-inspect` si falta y luego invoca al agente `amauta` para generar `kuraka.config.yaml` + `.claude/project/` extrayendo convenciones del código real. |
 | `/kuraka-update` | **Actualiza el framework montado** en este proyecto desde el vault (nuevos agentes/skills/commands/templates). No toca `kuraka.config.yaml`, `.claude/project/` ni `docs/`. |
+| `/kuraka-backup` | **Acomoda el proyecto al store central**: snapshotea su estado Kuraka completo (`layer`+`state`+`cycles`) a `projects/<slug>/` del vault. Correr tras `/kuraka-update`; Phase 7 lo corre solo en cada cierre. |
 | `/kuraka` | Orquesta un ciclo de desarrollo para un requerimiento dado. |
 
 > **Importante**: tras `/kuraka-update` (o cualquier mount) hay que reiniciar
@@ -245,10 +356,10 @@ cualquier subdirectorio.
 ### Onboarding paso a paso (proyecto existente)
 
 ```bash
-# 1. Cold start desde fuera (repo recién clonado, sin nada montado):
-python3 "$KURAKA_VAULT/kuraka-init.py" /ruta/al/proyecto   # inspect + mount + skeleton
-# …o el mount directo:
-bash "$KURAKA_VAULT/mount-kuraka.sh" /ruta/al/proyecto
+# 1. Desde la solución (repo recién clonado, sin nada montado):
+cd /ruta/al/proyecto
+kuraka init        # inspect + config + skeleton + mount + registro + componentes
+#   …o solo el mount:  kuraka mount
 
 # 2. Reinicia Claude Code en el proyecto (/exit + sesión nueva)
 
@@ -263,10 +374,9 @@ bash "$KURAKA_VAULT/mount-kuraka.sh" /ruta/al/proyecto
 ### Actualizar un proyecto que ya tenía Kuraka
 
 ```bash
-# La primera vez, un mount manual para traer el comando nuevo:
-bash "$KURAKA_VAULT/mount-kuraka.sh" /ruta/al/proyecto && # reinicia
-# De ahí en adelante, desde la sesión del proyecto:
-/kuraka-update        # trae lo nuevo del vault, valida y te recuerda reiniciar
+cd /ruta/al/proyecto
+kuraka update         # trae lo nuevo del vault (rsync --update) → reinicia Claude Code
+# (equivalente dentro de Claude Code: /kuraka-update)
 ```
 
 > **Portabilidad entre máquinas**: el único ajuste por equipo es una línea en
@@ -314,6 +424,49 @@ existente) o a `inti`/`arki` (greenfield). Detalle en
 
 ---
 
+## Store central + backup/restore (historia fuera del git de la solución)
+
+Toda la historia de Kuraka de cada proyecto vive en **un solo directorio** del
+vault, `projects/<slug>/` (fusión de los antiguos `cycle-archive/` y
+`projects-docs/`):
+
+```
+projects/
+├── README.md                 (doc)        INDEX.md (catálogo de ciclos)
+└── <slug>/                    slug = kuraka.config.yaml project.name (canónico)
+    ├── registry.md           ficha: path, stack, modo, status
+    ├── backup.yaml           last_backup, last_branch, branches[]
+    ├── layer/                snapshot de .claude/project/ (convenciones, lessons, review-checks)
+    ├── state/docs-process/   snapshot de docs/process/ (REQ, stories, test-plans, schemas, checkpoints)
+    └── cycles/<REQ>/          RETRO + telemetry + meta (diagnósticos por ciclo)
+```
+
+- **Identidad única**: el slug sale del `project.name` del config vía
+  `kuraka_common.project_slug`, usado por init/backup/restore/archive/discover —
+  un proyecto tiene **un solo nombre** en todas las herramientas.
+- **Backup** (`kuraka-backup.py`): automático en Phase 7 y on-demand
+  (`/kuraka-backup`). Etiqueta la rama en cada ciclo.
+- **Restore** (`kuraka-restore.py`): al montar/cambiar de rama, `mount-kuraka`
+  pregunta *"¿restauro la historia de `<slug>`?"* y re-pega `layer/` + `state/`
+  **sin pisar** lo existente (`--force` para sobrescribir).
+- **Aprendizaje cross-proyecto**: `pattern-detector` lee todos los
+  `projects/*/cycles/**` para detectar fallos sistémicos (de todos los proyectos,
+  no de uno solo) y proponer ajustes al vault base.
+- **Política de git**: el store es **solo disco** (`projects/` está gitignored).
+  Sobrevive a los cambios de rama de la solución; no se sube con el vault.
+
+**Caso de uso clave** — no perder trabajo al cambiar de rama:
+
+```bash
+# Trabajaste en rama-A con Kuraka (REQ, stories, schemas) y NO lo subiste a git.
+git switch rama-B          # o git switch -c rama-nueva
+mount-kuraka               # detecta historia en el central →
+                           #   "¿Restaurar la historia de <slug>? [s/N]"  → s
+# todo el histórico vuelve a rama-B; seguís donde quedaste.
+```
+
+---
+
 ## Qué NO está en este repo
 
 - **Reglas 01–15** del proyecto sie_v2 (convenciones de equipo, viven en el git del proyecto)
@@ -330,10 +483,19 @@ existente) o a `inti`/`arki` (greenfield). Detalle en
 Baseline medido en el ciclo 2026-04-21 (homologate-new-scale-frontend):
 **458K tokens** para restyle de 7 archivos en 3 fases.
 
-Con los patrones T1–T5 aplicados + model routing + agentes nativos registrados:
-proyección **~200K tokens** por ciclo equivalente (−55%).
+Con los patrones T1–T8 aplicados + model routing + agentes nativos registrados:
+proyección **~200K tokens** por ciclo equivalente (−55%). Con **RTK** activo
+(hook global) se suma 70–90% de ahorro en operaciones de dev (grep/cat/test/git),
+complementario a las reglas T (ellas reducen *cuántas veces* leés; RTK reduce el
+*costo de cada lectura*).
 
-Telemetría continua vía `aggregate-telemetry.py`.
+**Optimización continua basada en datos**: el análisis cross-proyecto de 38
+retrospectivas produjo 14 hallazgos comunes y 4 "olas" de mejoras ya aplicadas a
+los agentes/skills/rules base (`KURAKA-OPTIMIZATION-REPORT.md`). El loop se
+auto-sostiene: `final-auditor` verifica que los parches de la retro anterior se
+aplicaron, y `pattern-detector` se auto-dispara cada 5 ciclos.
+
+Telemetría continua vía `aggregate-telemetry.py` (separa compute de wall-clock).
 
 ---
 
@@ -343,7 +505,7 @@ Uso personal. Compartible con el equipo bajo acuerdo.
 
 ---
 
-*Última revisión: 2026-06-07 (modo Discovery/Tinkuy + comandos slash portables: `/kuraka-wizard`, `/amauta`, `/kuraka-update`)*
+*Última revisión: 2026-06-28 (store central unificado `projects/<slug>/` + backup/restore branch-aware [`kuraka-backup.py`/`kuraka-restore.py`/`kuraka_common.py`, comando `/kuraka-backup`]; 4 olas de optimización de agentes/skills/rules desde retros cross-proyecto [`KURAKA-OPTIMIZATION-REPORT.md`]; componentes recomendados + RTK [`RECOMMENDED-COMPONENTS.md`]; agentes de seguridad checkmarx-remediation + pentest-auditor [18 agentes]; stack-profiles angular/express/react)*
 *Last synced: 2026-06-04 (session: 4 Mutua Kuraka cycles — nuevoaviso contract/idServicio, outbound handler-rename+e2e, outbound payload §2.6/§2.11 vs PDF, keycloak fallback removal — + RECURRING-ISSUES.md agent-optimization analysis. RETROs, REQs, SMOKE, PENDING synced. Agent prompt patches NOT yet applied — pending user review of RECURRING-ISSUES.md.)*
 *Last synced: 2026-06-10 (project `clinicaDental2026` (ZYNVET, Angular 19) added to `projects/clinicaDental2026.md` after REQ-20260610-vet-pets Cycle 1 — project-layer patches P1–P5 applied in-repo: review-checks verbatim-payload-fidelity / binding-pitfall-snippets / directed-contract-crosscheck, conventions NG0203 guard, agent appends, lessons LL-001/LL-002.)*
 *Last synced: 2026-06-11 (GuaiHome RETRO-REQ-20260611-mvp1-registro-perito-webhook §6 patches applied — only `skills/kuraka-policies.md` synced here (P2 framework part: "Gate command integrity" no-pipe gate rule). P1/P3/P4/P5/P6/T7/T8 are `.claude/project/` + `.claude/rules/` files, OUTSIDE the backup mapping → applied local-only in-repo, not synced.)*

@@ -1,0 +1,110 @@
+#!/usr/bin/env bash
+# kuraka — single CLI entrypoint for the Kuraka vault.
+#
+# After `install.sh` (run once per machine), this is on your PATH, so you can
+# run `kuraka <cmd>` from anywhere — typically from inside the solution you want
+# to work on. The vault location is resolved automatically (this script's own
+# dir), or from $KURAKA_VAULT if set.
+#
+#   kuraka mount [dir]       mount/update Kuraka into dir (default: current dir)
+#   kuraka init  [dir]       full one-shot install (inspect+config+skeleton+mount+register)
+#   kuraka update            update the framework in the project above the current dir
+#   kuraka backup  [dir]     snapshot this project's Kuraka state into the central store
+#   kuraka restore [dir]     restore this project's Kuraka history from the central store
+#   kuraka inspect [dir]     detect the stack
+#   kuraka discover [...]    find mounted projects + reconcile the registry
+#   kuraka dashboard [dir]   aggregate telemetry dashboard
+#   kuraka validate [dir]    validate mounted frontmatter
+#   kuraka doctor            check the setup (vault, PATH, RTK)
+#   kuraka help              this help
+
+set -euo pipefail
+
+# --- resolve the vault: $KURAKA_VAULT, else the real dir of this script ---
+_self_src="${BASH_SOURCE[0]}"
+while [ -h "$_self_src" ]; do
+  _dir="$(cd -P "$(dirname "$_self_src")" && pwd)"
+  _self_src="$(readlink "$_self_src")"
+  case "$_self_src" in /*) ;; *) _self_src="$_dir/$_self_src" ;; esac
+done
+SELF_DIR="$(cd -P "$(dirname "$_self_src")" && pwd)"
+VAULT="${KURAKA_VAULT:-$SELF_DIR}"
+
+if [ ! -d "$VAULT" ]; then
+  echo "❌ vault no encontrado: $VAULT" >&2
+  echo "   export KURAKA_VAULT=\"/ruta/a/kuraka\"  (o reinstalá con install.sh)" >&2
+  exit 1
+fi
+
+# --- find the nearest ancestor (incl. $PWD) that has .claude/ ---
+find_project_root() {
+  local d="${1:-$PWD}"
+  while [ "$d" != "/" ] && [ ! -d "$d/.claude" ]; do d="$(dirname "$d")"; done
+  [ -d "$d/.claude" ] && echo "$d" || return 1
+}
+
+usage() {
+  cat <<'EOF'
+kuraka — CLI del vault Kuraka. Corré desde cualquier carpeta (típicamente tu solución).
+
+  kuraka mount [dir]       montar/actualizar Kuraka en dir (default: carpeta actual)
+  kuraka init  [dir]       instalación one-shot (inspect+config+skeleton+mount+registro)
+  kuraka update            actualizar el framework en el proyecto sobre la carpeta actual
+  kuraka backup  [dir]     respaldar el estado Kuraka del proyecto al store central
+  kuraka restore [dir]     restaurar la historia del proyecto desde el store central
+  kuraka inspect [dir]     detectar el stack
+  kuraka discover [...]    descubrir proyectos montados + reconciliar el registro
+  kuraka dashboard [dir]   dashboard de telemetría
+  kuraka validate [dir]    validar frontmatter montado
+  kuraka doctor            verificar el setup (vault, PATH, RTK)
+  kuraka help              esta ayuda
+EOF
+}
+
+sub="${1:-help}"; [ $# -gt 0 ] && shift || true
+
+case "$sub" in
+  mount)
+    target="$(cd "${1:-$PWD}" && pwd)"
+    if [ "$target" = "$VAULT" ]; then
+      echo "❌ no se monta Kuraka dentro del propio vault. Corré 'kuraka mount' desde tu solución." >&2
+      exit 1
+    fi
+    bash "$VAULT/mount-kuraka.sh" "$target"
+    ;;
+  init)
+    python3 "$VAULT/kuraka-init.py" "${1:-$PWD}" "${@:2}"
+    ;;
+  update)
+    root="$(find_project_root)" || { echo "❌ no hay proyecto con .claude/ desde $PWD" >&2; exit 1; }
+    bash "$VAULT/mount-kuraka.sh" "$root"
+    ;;
+  backup)
+    root="$(find_project_root "${1:-$PWD}")" || root="${1:-$PWD}"
+    python3 "$VAULT/kuraka-backup.py" "$root"
+    ;;
+  restore)
+    root="$(find_project_root "${1:-$PWD}")" || root="${1:-$PWD}"
+    python3 "$VAULT/kuraka-restore.py" "$root"
+    ;;
+  inspect)    python3 "$VAULT/kuraka-inspect.py" "${1:-$PWD}" ;;
+  discover)   python3 "$VAULT/kuraka-discover.py" "$@" ;;
+  dashboard)  python3 "$VAULT/aggregate-telemetry.py" "${1:-$PWD}" ;;
+  validate)   bash "$VAULT/validate-kuraka.sh" "${1:-$PWD}" ;;
+  doctor)
+    echo "🩺 kuraka doctor"
+    echo "   vault:        $VAULT"
+    echo "   KURAKA_VAULT: ${KURAKA_VAULT:-(no seteado — usando dir del script)}"
+    echo "   kuraka en PATH: $(command -v kuraka || echo 'NO (corré install.sh)')"
+    if command -v rtk >/dev/null 2>&1; then
+      echo "   rtk:          $(rtk --version 2>/dev/null | head -1) ✓"
+      grep -q 'rtk hook' "$HOME/.claude/settings.json" 2>/dev/null \
+        && echo "   rtk hook:     activo ✓ (ahorro de tokens automático)" \
+        || echo "   rtk hook:     NO activo — corré 'rtk init -g'"
+    else
+      echo "   rtk:          no instalado — ver RECOMMENDED-COMPONENTS.md"
+    fi
+    ;;
+  help|-h|--help) usage ;;
+  *) echo "❌ subcomando desconocido: $sub" >&2; echo "" >&2; usage >&2; exit 1 ;;
+esac
