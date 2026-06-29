@@ -207,6 +207,7 @@ te ofrece re-pegarla — así no se pierde nada aunque nunca subas Kuraka a git.
 | `mount-kuraka.sh` | Monta el Kuraka en un proyecto (rsync + gitignore) y **ofrece restaurar historia** del central |
 | `kuraka-backup.py` | Snapshot del estado Kuraka del proyecto → store central (`layer`+`state`+`cycles`, etiqueta rama) |
 | `kuraka-restore.py` | Restaura la historia del central → proyecto (pregunta; no pisa sin `--force`) |
+| `kuraka-export.py` | Genera `AGENTS.md` (+ `.cursor/rules`) para Codex/Cursor/Antigravity (`kuraka mount --target …`) |
 | `kuraka-archive.py` | Archiva solo los diagnósticos de ciclo (wrapper cycles-only de backup) |
 | `kuraka-discover.py` | Descubre proyectos montados en disco y reconcilia el registro |
 | `validate-kuraka.sh` | Valida frontmatter de agentes/skills + refs huérfanas |
@@ -421,6 +422,34 @@ reclamo regulatorio/legal/normativo se marca `⚠️ VALIDAR con experto humano`
 ley tributaria, etc.). El brief alimenta luego a `po-analyst` (proyecto
 existente) o a `inti`/`arki` (greenfield). Detalle en
 `skills/facilitate-discovery.md`.
+
+---
+
+## Otros entornos de IA (Codex, Cursor, Antigravity)
+
+Kuraka da su orquestación multi-subagente completa en **Claude Code**. Para otros
+entornos, `mount` genera la versión **portable** del workflow vía `AGENTS.md` (el
+estándar que leen Codex, Cursor, Antigravity, Gemini CLI…):
+
+```bash
+kuraka mount --target codex        # genera AGENTS.md en la raíz del proyecto
+kuraka mount --target cursor       # AGENTS.md + .cursor/rules/kuraka.mdc
+kuraka mount --target antigravity  # AGENTS.md (verificar reglas propias del IDE)
+kuraka mount                        # (default) Claude Code → .claude/ completo
+```
+
+Qué porta y qué no:
+- **Porta** (como guía): la disciplina de 8 fases con gates, los no-negociables
+  (observar contratos, schema freeze, "green = lint+typecheck+test", green ≠
+  working), las convenciones del stack y cada agente convertido en un **rol** que
+  el agente único adopta por fase.
+- **No porta**: el *fan-out automático* de subagentes (es propio del tool `Task`
+  de Claude Code). En esos entornos los roles se invocan manualmente.
+- **RTK** sí funciona en todos (Cursor, Codex, Gemini CLI…): corré su `rtk init`
+  y el ahorro de tokens aplica igual.
+
+El `AGENTS.md` se regenera con re-correr el comando; toma el stack/convenciones de
+`kuraka.config.yaml` y los roles de los agentes del vault.
 
 ---
 

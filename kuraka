@@ -47,7 +47,9 @@ usage() {
   cat <<'EOF'
 kuraka — CLI del vault Kuraka. Corré desde cualquier carpeta (típicamente tu solución).
 
-  kuraka mount [dir]       montar/actualizar Kuraka en dir (default: carpeta actual)
+  kuraka mount [dir]       montar Kuraka en dir (default: carpeta actual) — Claude Code
+  kuraka mount --target codex|cursor|antigravity [dir]
+                           generar AGENTS.md (+ .cursor/rules) para otros entornos de IA
   kuraka init  [dir]       instalación one-shot (inspect+config+skeleton+mount+registro)
   kuraka update            actualizar el framework en el proyecto sobre la carpeta actual
   kuraka backup  [dir]     respaldar el estado Kuraka del proyecto al store central
@@ -65,12 +67,27 @@ sub="${1:-help}"; [ $# -gt 0 ] && shift || true
 
 case "$sub" in
   mount)
-    target="$(cd "${1:-$PWD}" && pwd)"
+    tgt="claude"; dir=""
+    while [ $# -gt 0 ]; do
+      case "$1" in
+        --target)   tgt="${2:-}"; shift 2 ;;
+        --target=*) tgt="${1#*=}"; shift ;;
+        *)          dir="$1"; shift ;;
+      esac
+    done
+    target="$(cd "${dir:-$PWD}" && pwd)"
     if [ "$target" = "$VAULT" ]; then
       echo "❌ no se monta Kuraka dentro del propio vault. Corré 'kuraka mount' desde tu solución." >&2
       exit 1
     fi
-    bash "$VAULT/mount-kuraka.sh" "$target"
+    case "$tgt" in
+      claude)
+        bash "$VAULT/mount-kuraka.sh" "$target" ;;
+      codex|cursor|antigravity)
+        python3 "$VAULT/kuraka-export.py" "$target" --target "$tgt" ;;
+      *)
+        echo "❌ target desconocido: $tgt  (claude | codex | cursor | antigravity)" >&2; exit 1 ;;
+    esac
     ;;
   init)
     python3 "$VAULT/kuraka-init.py" "${1:-$PWD}" "${@:2}"
