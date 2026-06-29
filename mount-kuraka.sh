@@ -49,7 +49,9 @@ for category in agents skills commands hooks; do
     if [ -d "$src" ]; then
         mkdir -p "$dst"
         count_before=$(find "$dst" -maxdepth 1 -name "*.md" -o -name "*.sh" 2>/dev/null | wc -l | tr -d ' ')
-        rsync -a --update "$src/" "$dst/"
+        # *.append.md are project-layer rule fragments (e.g. sie_v2 DD-1031), not
+        # framework agents — they have no frontmatter and must never be mounted as agents.
+        rsync -a --update --exclude='*.append.md' "$src/" "$dst/"
         count_after=$(find "$dst" -maxdepth 1 -name "*.md" -o -name "*.sh" 2>/dev/null | wc -l | tr -d ' ')
         delta=$((count_after - count_before))
         if [ "$delta" -gt 0 ]; then
@@ -115,6 +117,14 @@ if [ -d "$ARTIFACTS_SRC" ]; then
         mkdir -p ".claude/stack-profiles"
         rsync -a --update "$ARTIFACTS_SRC/stack-profiles/" ".claude/stack-profiles/"
         echo "   ✓ stack-profiles/"
+    fi
+
+    # templates/ — framework-supplied templates (e.g. design-brief,
+    # domain-expert for the Discovery/Tinkuy flow; read by the orchestrator)
+    if [ -d "$ARTIFACTS_SRC/templates" ]; then
+        mkdir -p ".claude/templates"
+        rsync -a --update "$ARTIFACTS_SRC/templates/" ".claude/templates/"
+        echo "   ✓ templates/"
     fi
 fi
 
@@ -211,3 +221,32 @@ echo ""
 echo "  3. Invoca el Kuraka cuando empieces un requerimiento:"
 echo "     /kuraka o referencia skills/kuraka.md en el chat"
 echo ""
+echo "  4. (Recomendado) Componentes que potencian Kuraka:"
+echo "     $VAULT/RECOMMENDED-COMPONENTS.md"
+echo "     → RTK (ahorro 70-90% de tokens), ui-ux-pro-max, Playwright MCP..."
+echo ""
+
+# --- auto-register in the vault registry (best-effort; never fail the mount on this) ---
+if [ -f "$VAULT/kuraka-init.py" ]; then
+    if python3 "$VAULT/kuraka-init.py" --target "$TARGET" --register-only --yes >/dev/null 2>&1; then
+        echo "   ✓ registrado en el registro del vault (projects/)"
+        echo ""
+    fi
+fi
+
+# --- offer to restore Kuraka history (branch-switch recovery) ---
+# If the central store has history for this project (worked on another branch and
+# not committed to the solution's git), offer to paste it back. Never overwrites
+# existing files. Safe no-op when there's no history.
+if [ -f "$VAULT/kuraka-restore.py" ]; then
+    if [ -t 0 ]; then
+        # real terminal → interactive prompt
+        python3 "$VAULT/kuraka-restore.py" "$TARGET" || true
+    else
+        # non-interactive (e.g. run by an agent / CI) → report only, never block
+        python3 "$VAULT/kuraka-restore.py" "$TARGET" --check || true
+        echo "   ℹ️  Para restaurar la historia (si la hay):"
+        echo "      python3 \"$VAULT/kuraka-restore.py\" \"$TARGET\"   # pregunta antes de pegar"
+    fi
+    echo ""
+fi

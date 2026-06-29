@@ -468,6 +468,27 @@ def detect_structure(root: Path) -> str:
         return "monorepo-lerna"
     if (root / "go.work").exists():
         return "monorepo-go-workspaces"
+    # npm / yarn classic workspaces: root package.json "workspaces" field
+    # (array, or object with a "packages" array). Missed before → dbcanvas was
+    # misdetected as single-package.
+    pkg = root / "package.json"
+    if pkg.is_file():
+        try:
+            data = json.loads(pkg.read_text(encoding="utf-8"))
+            ws = data.get("workspaces")
+            if isinstance(ws, dict):
+                ws = ws.get("packages")
+            if isinstance(ws, list) and ws:
+                return "monorepo-npm-workspaces"
+        except (json.JSONDecodeError, OSError):
+            pass
+    # Heuristic: a populated packages/ or apps/ dir of sub-packages
+    for sub in ("packages", "apps"):
+        d = root / sub
+        if d.is_dir() and any(
+            (child / "package.json").is_file() for child in d.iterdir() if child.is_dir()
+        ):
+            return "monorepo-de-facto"
     # Heuristic: backend/ + frontend/ at top = de-facto monorepo
     if (root / "backend").is_dir() and (root / "frontend").is_dir():
         return "monorepo-de-facto"

@@ -150,6 +150,33 @@ with `architecture.paths.*`. For example with `python-fastapi` profile:
     tests directory (under `${architecture.paths.tests_root}/`) for the
     actual import pattern; use the confirmed pattern. Do NOT document
     ambiguity — resolve it at story-writing time.
+14. **Size existing functions before adding wiring** — When a story adds
+    branches, try/except blocks, or service calls to an EXISTING function,
+    record that function's current LOC. If the addition would push it past
+    `conventions.max_function_loc`, the story MUST pre-authorize a named
+    private-helper extraction in an acceptance criterion, so the implementer
+    does not have to choose (and code review does not have to catch it).
+15. **Name the mechanism — never a prose hedge** — for any parse / compare /
+    curate / serialize / classify step where >1 reasonable implementation
+    exists (yaml-vs-JSON, segment-vs-string match, reject-vs-coerce,
+    `matter.stringify` round-trip, date format), state the *resolved* mechanism
+    in one AC line. An ambiguous "handle the X appropriately" is a defect — it
+    let a silent vault-corruption bug and a Phase-5 BLOCKER through in
+    kuraka-control (LL-011/012/013).
+16. **Structural pitfalls are binding copy-this snippets, NOT prose notes** —
+    any routing/nesting, DI/provider scope, lazy-load shape, or module-wiring
+    pitfall must be embedded as the EXACT corrected code block in an acceptance
+    criterion of the owning story. Never describe it as a "Technical Note" —
+    a prose warning got re-broken by the implementer (~65K rework, clinica-dental
+    vet-pets). Prose advises; a paste-verbatim AC binds.
+17. **Mark each AC edge-case row normative vs illustrative** — when an AC table
+    lists an edge case (e.g. `'' → '/'`), tag it `[normative]` (must implement)
+    or `[illustrative]` (example only). An untagged edge row gets treated as
+    optional and skipped.
+18. **Rename/move stories carry a grep inventory** — if a story renames or moves
+    a symbol/file, include a grep inventory of every test/fixture/seed that
+    references the old name, and instruct evolving those in place (`git mv`),
+    never creating a parallel `*_rename` file that orphans the originals.
 
 ## After Completion
 

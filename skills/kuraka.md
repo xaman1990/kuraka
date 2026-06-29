@@ -12,8 +12,9 @@ description: "Development orchestrator (kuraka, from Quechua *kuraq* — 'the el
 
 This skill defines the **main flow**. Two companion files complement it:
 
-- `kuraka-modes.md` — flow variants (Bootstrap, Brownfield, Standard,
-  Compliance, Reduced-by-risk, Lite, Retroactive) and when to use each.
+- `kuraka-modes.md` — flow variants (Discovery, Bootstrap, Brownfield,
+  Standard, Compliance, Reduced-by-risk, Lite, Retroactive) and when to
+  use each.
 - `kuraka-policies.md` — cross-cutting policies (retry, timeout,
   telemetry, checkpoints).
 
@@ -31,7 +32,11 @@ Also required: `kuraka.config.yaml` at the project root. If missing, ask
 the user to run `kuraka init` (or copy the template from the framework's
 `kuraka-artifacts/config-schema.yaml`).
 
-If the user hasn't provided a requirement, ask before proceeding.
+If the user hasn't provided a requirement, ask before proceeding. If the
+user has only an **idea, not a requirement** (and wants to explore the
+bases of the system), do not start Phase 1 — run the Discovery mode first:
+the `facilitate-discovery` skill (Tinkuy council) produces a design brief
+that then feeds `po-analyst`. See `kuraka-modes.md` → Discovery.
 
 ---
 
@@ -63,7 +68,7 @@ user **before** invoking any agent — they approve which phases to run.
 
 | Phase | Agent | Skill | Gate |
 |-------|-------|-------|------|
-| 1. PO Analysis | `po-analyst` | `analyze-requirement` | User approves REQ |
+| 1. PO Analysis | `po-analyst` | `requirement-consistency-check` → `analyze-requirement` | GATE0 no unresolved BLOCKER; user approves REQ |
 | 2. Story Refinement | `story-refiner` | `refine-stories` | User approves stories |
 | 2.5. Test Planning | `test-engineer` (mode: TEST_PLANNING) | `plan-tests` | User approves test plan |
 | 3. Architect Review | `architect-reviewer` | `review-stories` + `schema-freeze` | No BLOCKERS; schema frozen |
@@ -92,6 +97,22 @@ user **before** invoking any agent — they approve which phases to run.
 - Output: `${architecture.paths.docs_process_root}/REQ-{YYYYMMDD}-{ticket}-{slug}.md`
 - Content: scope IN/OUT, tables, endpoints, dependencies, risks, proposed stories.
 - Gate: user approves REQ.
+- **GATE0 PRECONDITION (HARD — runs before analyze-requirement):**
+  `po-analyst` MUST run the `requirement-consistency-check` skill first.
+  If it returns `BLOCKED`, STOP: turn each Blocker into an
+  `AskUserQuestion`, record answers verbatim in the REQ
+  ("Resolved clarifications"), and only then proceed. Do NOT dispatch to
+  Phase 2/4 while any BLOCKER is unresolved. Re-run the skill on the
+  delta whenever the user expands scope mid-cycle ("ahora también…",
+  "te faltó…"); a new BLOCKER re-opens GATE0. Rationale: DD-1031 rework
+  (≈13 runtime iterations, one near-revert, duplicate migration work)
+  was caused by fragmented scope + reversible decisions without a
+  recorded value test. See `docs/process/IMPROVEMENTS-DD-1031.md`.
+- **GATE1 PRECONDITION (HARD):** the per-Agent telemetry JSON file for this
+  REQ must exist and be appended after every Agent invocation. If it does
+  not exist by Gate1, STOP and ask the user. Telemetry is not optional —
+  RETRO-DD-1031 and RETRO-DD-1031-rerun were both blind audits because of
+  this gap.
 
 ### Phase 2 — Story Refinement
 - Agent: `story-refiner` | Skill: `refine-stories`
@@ -115,13 +136,19 @@ user **before** invoking any agent — they approve which phases to run.
 
 ### Phase 4 — Implementation
 
+**PHASE 4 RULE:** a story is DONE only when its diff is committed on the
+feature branch. The orchestrator commits after each story's `make test`
+passes, before starting the next story. An uncommitted cycle is a lost
+cycle (see RETRO-DD-1031 Incident A).
+
 Two sub-phases that can run in parallel if stories are independent (when
 `workflow.parallel_implementation: true`):
 
 - **4a Backend** — Agent: `backend-developer` | Skill: `implement-story`
   - Order: defined by the stack profile for `${stack.backend.framework}`.
   - Check after each file: `${stack.backend.lint_cmd}`
-  - Check after each story: `${stack.backend.test_cmd}`
+  - Check after each story: `${stack.backend.typecheck_cmd}` (when the stack
+    defines one — e.g. `tsc --noEmit`, `mypy`) **then** `${stack.backend.test_cmd}`
 
 - **4b Frontend** — Agent: `frontend-developer` | Skill: `implement-story`
   - Order: defined by the stack profile for `${stack.frontend.framework}`.
@@ -132,7 +159,12 @@ Shared rules: `conventions.max_file_loc` and `conventions.max_function_loc`
 respected; no hardcoded values; no magic strings (per
 `conventions.enums_for_states`); all imports at file top; no commented-out code.
 
-Gate 4: all stories implemented + checks green.
+Gate 4: all stories implemented + checks green. **"Green" = lint +
+typecheck + test all pass.** A test runner that transpiles per-file (vitest,
+jest) does NOT typecheck the graph — never accept "tests green" as proof of a
+clean build. If the stack defines `typecheck_cmd` for a workspace, a story is
+not done until that command exits 0. (Source: kuraka-control LL-014 — an
+invalid cast rode green ~3 cycles because the gate ran the test runner only.)
 
 ### Phase 5 — Code Review
 - Agent: `code-reviewer` | Skill: `review-implementation`

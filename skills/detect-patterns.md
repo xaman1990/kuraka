@@ -12,8 +12,11 @@ structural fixes, for the project described in `kuraka.config.yaml`.
 
 ## Input
 
-All files in
-`${architecture.paths.docs_process_root}/agent-retrospectives/RETRO-*.md`.
+All `RETRO-*.md` for this project under
+`${architecture.paths.docs_process_root}/` (check for >1 retro directory and
+read them all), PLUS the cross-project archive
+`${KURAKA_VAULT}/projects/*/cycles/**/RETRO-*.md` to catch issues that recur across
+DIFFERENT projects (the strongest case for a framework-base fix).
 
 ## Steps
 
@@ -30,8 +33,9 @@ Count occurrences per group.
 
 ### 3. Identify patterns
 
-- 3+ occurrences with same agent + category = PATTERN.
-- 2 occurrences = WATCH (document but don't fix yet).
+- 3+ occurrences (same agent + category) in one project = PATTERN.
+- 2+ occurrences across DISTINCT projects = PATTERN (framework-level signal).
+- 2 occurrences within a single project = WATCH (document, don't fix yet).
 - 1 occurrence = NOISE (skip).
 
 ### 4. Assess preventability
@@ -68,7 +72,8 @@ reviews first.
 
 ## Rules
 
-1. **Minimum 3 occurrences for a pattern** — lower threshold = noise.
+1. **Minimum 3 occurrences in one project, OR 2+ across distinct projects** —
+   a single-project pair is noise; the same issue in two projects is a signal.
 2. **Cite RETRO sources explicitly** — every pattern lists the RETROs.
 3. **Prefer earliest-phase fix** — prevention > detection.
 4. **Check for rule fatigue** — if a pattern keeps recurring despite a

@@ -162,6 +162,14 @@ profile and apply automatically when the profile is loaded.
 - If a test fails and you're not sure why, **investigate before changing
   the test**.
 
+## Reporting Deviations
+
+If you deviate from an EXPLICIT orchestrator/story instruction (e.g. you were
+told "pure JSONB, no variant" but you ship a temporary variant to keep the
+suite green), you MUST: (1) flag the deviation prominently in your run summary,
+(2) state the rationale, (3) state the planned path back to the instructed
+end-state. Never substitute silently — even when the substitution is better.
+
 ## Output Validation
 
 Before returning, run the `verify-output` skill against your completion report.

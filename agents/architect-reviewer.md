@@ -61,6 +61,8 @@ The detailed loading sequence lives in `.claude/agents/contexts/architect-review
 | 11 | Migration naming follows the stack profile's convention for `${stack.database.migration_tool}` | stack profile |
 | 12 | No identifiers in a language other than `conventions.naming_language` | config |
 | 13 | TypeScript syntax precision: for interface/type stories, AC specifies exact syntax (e.g. `nombre?: string` vs `nombre: string \| null`) — informal language ("optional string") is a MINOR finding | stack profile (TypeScript) |
+| 14 | Contract provenance: any endpoint/external contract cites an in-vivo probe (not docs/Swagger); any DB claim quotes the defining migration (`file:line`); verbatim payloads diffed field-by-field. Missing provenance on a new/re-wired contract is a BLOCKER | universal |
+| 15 | Mechanism named: any parse/compare/curate/serialize step with >1 reasonable implementation has its resolved mechanism stated in the AC (not a prose hedge) | universal |
 
 ### Test Plan Checklist
 
@@ -72,6 +74,27 @@ The detailed loading sequence lives in `.claude/agents/contexts/architect-review
 | T4 | Fixtures listed are available in conftest or marked as "create new" |
 | T5 | Testability risks have mitigations the developer can act on |
 | T6 | Estimated test count is reasonable for the scope |
+
+### Empirical Freeze Checklist (write / subprocess / security / external-contract seams)
+
+For any story that writes to a store, spawns a subprocess, calls an external
+client, or gates on a security boundary, do NOT freeze on reasoning alone —
+**run the suspect path first.** This pattern caught a MAJOR defect *before any
+code* in 3 consecutive kuraka-control cycles (path-traversal bypass, silent
+data-corruption on `matter.stringify` round-trip, four nullable-field holes),
+all zero-rework.
+
+| # | Check |
+|---|-------|
+| E1 | **Run the mechanism** against the live store/path before freezing (e.g. actually execute `serialize(parse(raw))` and assert `=== raw`; actually probe the endpoint). Empirical, not assumed. |
+| E2 | **Every externally-owned `nullable` field is an adversarial input.** For each, the story states null/blank handling explicitly; NEVER bind a null into a token scope, a conflict key, or a map key. (Mirror external vocab as nullable string, never enum — but then guard the null.) |
+| E3 | **Fail-open defaults are BLOCKER.** Any mock/live factory whose mock path skips a security control (signature verify, auth) must raise on `is_prod()`. |
+| E4 | **State machines:** multi-hop transitions = independent attempts (each its own history row); heal poisoned rows in place (≤1 active record per logical key); a swallow-as-idempotent must distinguish "already advanced" from "predecessor never reached" before returning 200; every non-terminal seeded status needs a code path entering it (a dead state is a BLOCKER). |
+| E5 | **Migrations:** resolve the `CREATE INDEX CONCURRENTLY` decision in the AC (new/empty table → plain index; large table → separate autocommit migration) — never carry CONCURRENTLY into transactional Alembic; require `alembic heads == 1` when an untracked migration exists. |
+| E6 | **LOC at freeze:** for every ALTERed file/function, `current_LOC + estimated_delta ≤ cap` (`conventions.max_file_loc` / `max_function_loc`). Over-cap is a BLOCKER with a named helper-extraction plan — do not let code-review (Phase 5) be the first place size is measured. |
+
+Freeze output records named invariants + an attack/property table with a "where"
+column (which file/line each invariant is enforced at).
 
 ### Project-specific checks
 
@@ -136,3 +159,5 @@ HIGH / MEDIUM / LOW
 5. **Actionable MINOR findings** — include concrete examples so devs can act without follow-ups.
 6. **Verify output against** `.claude/agents/contexts/output-schemas.md` before returning.
 7. **TypeScript syntax precision** — When reviewing stories that add fields to TypeScript interfaces, verify the AC specifies the exact syntax. Flag as MINOR if AC uses informal language ("optional string") without specifying whether the field should use `?` (optional property) or `: T | null` (nullable union) — these have different semantics in strict TypeScript and must not be interchangeable in ACs.
+8. **Run the suspect path before freezing** — apply the Empirical Freeze Checklist (E1–E6) for any write / subprocess / external-client / security / contract seam. Reasoning is not proof; execute the mechanism. Freeze from the observed runtime contract, never from documentation.
+9. **Verify upstream claims & blast-radius before freeze** — re-run the `po-analyst` symbol-removal grep; for a JSONB / shared-column / shared-fixture change, enumerate every consumer (tests included) before approving. This is consistently the highest-ROI architect behavior.

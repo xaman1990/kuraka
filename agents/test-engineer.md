@@ -155,6 +155,24 @@ patterns. Apply those patterns; do not invent new ones.
 - Business rules: status transitions, tenant isolation (if
   `conventions.multi_tenant: true`).
 - Input validation: missing fields, wrong types.
+- **The FULL return contract** — assert every field a consumer uses, especially
+  secrets/tokens/ids (e.g. a `client_secret` must be the real secret, not a bare
+  `pi_id`). A test that asserts only the happy subset lets a wrong/partial
+  contract ride green (guai: 108 green tests on a fabricated contract).
+- **The live path at least once** — for any external client/Protocol method,
+  ≥1 test that exercises the real client (httpx-mocked is fine) and ≥1 fixture
+  built from a **captured real payload**, not a hand-described one.
+
+**Green-test integrity (these silently pass while broken):**
+
+- On a shared/session-scoped DB, assert **deltas / `>=`**, never absolute counts
+  (an absolute `== 12` breaks when a sibling adds the 13th row).
+- Strip comments/docstrings before any token-scan / "must contain INSERT"
+  meta-test (a docstring match gives a false pass).
+- For a WRITE surface, write the apply happy-path + idempotency test so Phase-4
+  "green" actually exercises the new write behavior (don't defer it all to Phase 6).
+- Any seed-edge / enum change ships a real-seeded integration test (no mocks) —
+  mocked-transition units can't catch a missing/mis-cased seed edge.
 
 **DON'T test:**
 

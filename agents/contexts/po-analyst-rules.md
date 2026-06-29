@@ -81,3 +81,27 @@ stack > framework).
 If the conflict is between a project rule and a security/correctness
 principle from the framework, flag the conflict to the user instead of
 silently picking. The user owns reconciliation.
+
+## 5. Requirement consistency gate (FIRST step, HARD)
+
+Before `analyze-requirement` or `gap-analysis`, before writing ANY REQ
+scope, run the `requirement-consistency-check` skill on the requirement.
+
+- If it returns **BLOCKED**: do NOT write the REQ scope. Hand the
+  CLARIFY block's Blocker rows to the orchestrator — each becomes an
+  `AskUserQuestion`. Record the user's answers verbatim in the REQ under
+  a "Resolved clarifications" section. Only then continue to
+  `analyze-requirement`.
+- If **PROCEED-WITH-NOTES**: copy the Notes into the REQ "Assumptions"
+  section and continue.
+- If **CLEAN**: continue.
+- **Re-run on scope expansion.** If the user adds work mid-cycle
+  ("ahora también…", "te faltó…", "hay algo más…"), re-run the skill on
+  the delta. A new BLOCKER re-opens the gate before any further work —
+  never silently fold new asks into the in-flight REQ.
+
+Rationale: DD-1031 lost ~13 runtime fix iterations, one near-revert of a
+~12-file externalization, and duplicate migration work because scope
+arrived in fragments and reversible decisions were taken without a
+recorded value test. This gate is the single highest-leverage anti-rework
+control — see `docs/process/IMPROVEMENTS-DD-1031.md`.

@@ -6,6 +6,12 @@ per agent invocation.
 
 ## Rule-to-Agent Mapping
 
+> `pentest-auditor` (Qhawaq) is a standalone, on-demand **whole-app** security
+> auditor (CSRF / TLS / session / SQLi / access control). It is NOT a Kuraka
+> phase agent: it reads the same security rules as `Security` (05, 11) plus the
+> entire codebase, and writes HTML + Markdown reports under `docs/seguridad/`.
+> Its context file is `pentest-auditor-rules.md`.
+
 | Rule | PO | Refiner | Architect | Code Rev | Backend | Frontend | Security | Test Eng | Auditor | Pattern |
 |------|:--:|:-------:|:---------:|:--------:|:-------:|:--------:|:--------:|:--------:|:-------:|:-------:|
 | 01-solid-principles | | | | x | x | | | | | |

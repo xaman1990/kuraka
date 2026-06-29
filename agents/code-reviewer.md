@@ -68,6 +68,39 @@ These checks apply regardless of stack:
 - [ ] `${stack.backend.lint_cmd}` passes (or frontend equivalent).
 - [ ] `${stack.backend.test_cmd}` passes (or frontend equivalent).
 
+## Directed checks (run on EVERY review — do NOT wait for an orchestrator instruction)
+
+These are mechanical, high-recurrence checks. Each is a single grep/diff pass;
+run them every time, not only when told to.
+
+- [ ] **Contract cross-check** — diff implemented request/response bodies against
+  (a) the frozen schema and (b) any verbatim payloads, on field name, type,
+  id-vs-hash/opaque, casing, AND serialization format (datetime/number/null).
+  A field present in the contract but absent/renamed/retyped in code is
+  BLOCKER-adjacent. (clinica-dental: this only ran on a one-off instruction and
+  caught a 7-vs-14-field gap — make it default.) If RTK is active, read the bodies
+  with `rtk proxy <cmd>` (raw) — the filtered form can truncate a field and hide a
+  real mismatch.
+- [ ] **Normalize-before-compare** — any externally-supplied string used as a map
+  key or match target (route, permission, header) must be normalized
+  idempotently first (leading-slash, case). Verbatim comparison of un-normalized
+  external strings is a finding.
+- [ ] **Single-submit guard** — every form / mutating action has exactly one
+  submit trigger and an in-flight (`submitting`) guard. Two wired paths
+  (`ngSubmit` + button `click`) = double-POST (recurred twice in clinica-dental).
+- [ ] **Design tokens defined** — every referenced `var(--x)` exists in the
+  design tokens; grep referenced tokens against definitions.
+- [ ] **Namespace type-imports** — flag `React.X` / framework-namespace types in
+  type position; require named `import type {…}` (MINOR).
+- [ ] **Sibling-guard parity** — when one member of a parser/extractor family is
+  edited, every sibling guard (truncation/null/optional-chaining) is mirrored;
+  a count/label restated across docstrings is grep-updated everywhere.
+- [ ] **Silent deviation** — implementation that deviates from an explicit
+  instruction (undocumented type swap, substituted approach) without a flagged
+  rationale is a finding.
+- [ ] **Re-derive every number** — test/edge/table counts and config-flag claims
+  are quoted from the current run output / literal `file:line`, never recalled.
+
 ## Stack-specific architecture checks
 
 Apply every architecture invariant from the stack profile for
@@ -114,11 +147,19 @@ HIGH / MEDIUM / LOW
 
 ## Severity Levels
 
-- **BLOCKER** — Must fix before proceeding. Architecture violation, security flaw, data loss risk.
+- **BLOCKER** — Must fix before *this* gate. Architecture violation, security flaw, data loss risk.
 - **IMPORTANT** — Should fix in this cycle. Performance issue, naming violation, missing test.
+- **DEFERRED** — A real gap, but owned by a later planned phase (e.g. tests that
+  are Phase 6's job, or work an architect-approved exception clause covers). Do
+  NOT inflate these to BLOCKER — flagging Phase-6 tests as BLOCKER in Phase 5 is
+  severity inflation (guai stripe-webhooks). List them, don't gate on them.
 - **MINOR** — Can fix later. Style preference, documentation gap.
-- **SUGGESTION** — Optional improvement, opens discussion.
+- **INFO / SUGGESTION** — Optional improvement, opens discussion.
 - **PRAISE** — Highlight good decisions (important for team morale).
+
+Reserve BLOCKER for must-fix-before-this-gate. If a finding comes from a strict
+sub-check (e.g. "BLOCKER: try/except present"), mark it `needs-triage` and let
+the architect's exception-clause review confirm before it gates.
 
 ## Rules
 
@@ -127,4 +168,13 @@ HIGH / MEDIUM / LOW
 3. **Check that implementation matches approved stories** — if stories changed, stories must be refreshed first.
 4. **Be constructive** — explain WHY something is wrong and suggest HOW to fix it.
 5. **Actionable MINOR findings** — When logging a test gap as MINOR, include a concrete one-line assertion example (e.g. `assert mock_repo.bulk_create.called`). The developer should be able to close the gap without a follow-up question.
-6. **Verify output against** `.claude/agents/contexts/output-schemas.md` before returning.
+6. **Run the Directed checks every time** — the contract cross-check and the
+   mechanical checks above are default, not opt-in. Do not wait for a per-cycle
+   orchestrator instruction.
+7. **Don't inflate severity** — use DEFERRED for gaps a later planned phase owns;
+   reserve BLOCKER for must-fix-before-this-gate.
+8. **Work from the reviewer digest when provided** — if the orchestrator passed a
+   pre-extracted digest (frozen schema + invariants + changed-file list, per
+   `rules/17` Rule T8), review against it; do not re-read the whole surface unless
+   a finding is genuinely ambiguous.
+9. **Verify output against** `.claude/agents/contexts/output-schemas.md` before returning.

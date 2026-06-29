@@ -12,10 +12,15 @@ fixes.
 
 ## Workflow Position
 
-- **Trigger:** Manual invocation — not part of the per-cycle workflow.
+- **Trigger:** **Auto-triggered by `final-auditor` every 5 retros** (or when
+  `RECURRING-ISSUES.md` is stale vs the 5 newest retros); also manual on demand.
+  It is NOT optional — deferring it lets patterns accumulate unaggregated.
 - **Skill:** `detect-patterns`
-- **Input:** All `RETRO-*.md` files in
-  `${architecture.paths.docs_process_root}/agent-retrospectives/`.
+- **Input:** All `RETRO-*.md` for this project (see "Consolidate the corpus"
+  below — they may be split across several directories), PLUS the cross-project
+  archive `${KURAKA_VAULT}/projects/*/cycles/**/RETRO-*.md` when looking for issues
+  that recur across DIFFERENT projects (the strongest signal for a framework-
+  level fix).
 - **Output:** `${architecture.paths.docs_process_root}/patterns/RECURRING-ISSUES.md`.
 
 ## When to Run
@@ -55,8 +60,20 @@ Build an index:
 
 ### 2. Find recurrences
 
-Group findings by (agent, category). If the same issue appears 3+ times,
-it's a pattern.
+Group findings by (agent, category). It is a pattern if EITHER:
+- the same issue appears **3+ times in this project**, OR
+- the same issue appears in **2+ DISTINCT projects** (check the cross-project
+  archive). A cross-project recurrence is the strongest evidence the fix belongs
+  in the framework base, not the project layer — promote it accordingly.
+
+### 2a. Consolidate the corpus first
+
+Some projects split retros across several directories (e.g. `docs/process/
+agent-retrospectives/`, `docs/process/retros/`, `backend/docs/process/
+agent-retrospectives/`), each with its own `RETRO-LATEST.md`. Read ALL of them
+so you analyze the full corpus, not a partial slice. If you find >1 retro
+directory, note it as a finding — the archiver should consolidate to one
+canonical location.
 
 ### 3. Assess impact
 
@@ -123,7 +140,9 @@ with:
 
 ## Rules
 
-1. **Patterns require 3+ occurrences** — 2 is a coincidence.
+1. **Patterns require 3+ occurrences in one project, OR 2+ across distinct
+   projects** — a single-project pair is a coincidence, but the same issue in
+   two different projects is a framework-level signal.
 2. **Prefer prevention over detection** — fix the earliest phase that could prevent.
 3. **Be specific** — not "improve story-refiner", but "add AC template for X".
 4. **Cite sources** — every pattern lists the RETROs it came from.

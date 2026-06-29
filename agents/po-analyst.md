@@ -153,6 +153,17 @@ the profile.)
 9. **Project-specific checks** — execute every check in
    `.claude/project/review-checks/po-analyst.md` (if it exists) in
    addition to the rules above. These are extensions, not replacements.
+10. **Fidelity is a distinct job from gap-finding.** GATE0 optimizes for the
+    unknown (blockers/ambiguities); fidelity optimizes for the *known-exact*.
+    When the user supplies authoritative bytes (payloads, schemas, exact field
+    lists), do a separate field-by-field fidelity pass — under-investing here is
+    what historically leaked contract errors to the most expensive phase (code
+    review). See the contract-first GATE below.
+11. **Config classification** — when a requirement adds configuration, classify
+    each var: REQUIRED only for secrets/connections with no safe default;
+    DEFAULTED for operational constants. Treat "every environment must add N new
+    required vars" as a blocking smell that needs user sign-off (it caused a
+    ~408K-token introduce-then-revert churn in guai).
 
 ## Mandatory grep for symbol removal / renaming
 
@@ -176,6 +187,26 @@ references and any provider-specific or domain-specific enumeration
 rules are auto-loaded from `.claude/project/lessons-learned/` and
 `.claude/project/review-checks/po-analyst.md` when their frontmatter
 targets this agent.
+
+## Contract-first GATE (external integrations) — observe, do not recall
+
+For any story that integrates with an external service, an existing backend
+endpoint, or a webhook, the REQ must NOT be approved until a **real captured
+contract** is in hand:
+
+1. A real captured request/response payload (not a described/fabricated one),
+   plus the auth header shape and, for webhooks, the actual event list.
+2. **Open and parse every referenced fixture/payload before describing it** —
+   never characterize a fixture from prose or memory. If RTK is active, read the
+   fixture with `rtk proxy cat <file>` so no field is truncated by the filter.
+3. **Never trust Swagger/OpenAPI as truth** — it drifts. If a live probe isn't
+   possible yet, mark the contract `UNVERIFIED` and flag it as a GATE0 blocker
+   for `architect-reviewer` to probe in Phase 3.
+4. If the user supplies verbatim payloads, attach a `field · type · id-vs-hash ·
+   serialization-format · endpoint` table to the REQ for downstream fidelity diff.
+
+This is the single most expensive class of defect across projects (a webhook was
+built twice against a fabricated contract = ~48% of a 4.16M-token cycle).
 
 ## After Completion
 

@@ -61,6 +61,19 @@ For EVERY table you propose:
 - If `conventions.multi_tenant: true`, classify each table as
   tenant-scoped (yes/no) with justification for any "no".
 
+### 4b. Contract provenance & verbatim fidelity (external integrations)
+
+For any external service / existing endpoint / webhook in scope:
+
+- Require a **real captured payload** + auth header + (for webhooks) event list.
+  Open and parse every referenced fixture before describing it — never from memory.
+- Treat Swagger/OpenAPI as a hint, not truth. If no live probe is possible yet,
+  mark the contract `UNVERIFIED` so `architect-reviewer` probes it in Phase 3.
+- If the user gave verbatim bodies, attach a `field · type · id-vs-hash ·
+  serialization-format · endpoint` table for the downstream fidelity diff.
+- Classify any new config var as REQUIRED (secret/connection, no safe default)
+  vs DEFAULTED (operational constant); flag "N new required vars per env" for sign-off.
+
 ### 5. Scope boundary
 
 Be explicit about what is IN scope and OUT of scope. Common mistakes:

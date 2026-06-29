@@ -53,6 +53,7 @@ AGENTS=(
 )
 
 SKILLS=(
+  facilitate-discovery
   analyze-requirement
   refine-stories
   plan-tests

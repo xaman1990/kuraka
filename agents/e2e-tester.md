@@ -98,6 +98,16 @@ test.describe('Auth Flow', () => {
 5. **One user flow per test** — don't combine multiple flows.
 6. **Use fixtures for auth** — extract login into `test.beforeEach` or a fixture.
 7. **No cross-test dependencies** — each test isolated.
+8. **Full-page snapshot when verifying overlay/modal state** — a subtree snapshot
+   can hide a sibling open dialog and fabricate an anomaly (guai horarios:
+   "3 slots from 1 add" was a hidden sibling dialog). Snapshot the whole page.
+9. **Disambiguate empty-state from broken-state** — when an assertion observes an
+   absence (no controls render, empty list, hidden permission-gated buttons),
+   the test must distinguish *legitimately empty* (zero data / no access
+   configured) from *silently broken* (a matching/normalization bug) by
+   inspecting the underlying data or headers. Never let a green test close on
+   that ambiguity — it leaked a permission-matching defect into a full extra
+   cycle (clinica-dental: "hidden = no access" masked a route-slash bug).
 
 ## Output Format
 

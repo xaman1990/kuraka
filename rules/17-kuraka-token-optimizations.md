@@ -191,14 +191,71 @@ wasted 200K-token subagent invocation.
 
 ---
 
-## Rule T6 — Ejecutar `make test` después de cada story que toque BD
+## Rule T6 — Implementación secuencial + `make test` obligatorio por story (provider migrations)
 
-**Aplica cuando** la story implementa una migration, un seed o un cambio de modelo SQLAlchemy.
+**Aplica cuando** cualquiera de estas es cierta:
+- La story crea o modifica un provider, processor o integration handler.
+- La story crea un seed o una migration, o cambia un modelo SQLAlchemy.
+- La story usa abstract base classes, mocks cross-module o fixtures custom.
+- La story implementa más de una feature distinta (riesgo de interdependencia).
 
-**Cómo**: el orquestador invoca `make test` (o `make test-fast`) inmediatamente después de que el agente implementador termine la story BD-tocante, **antes** de avanzar a la siguiente story.
+**Cómo**:
+- NO lanzar varias stories en paralelo. Implementar las stories **secuencialmente**.
+- Después de que cada story termine, correr `make test` (o `make test-fast`) **antes** de empezar la siguiente.
+- Si `make test` falla, arreglar el bug en la story actual antes de avanzar.
+- Esta disciplina demostró entregar ~0 retrabajo cross-story (RETRO-DD-1031-rerun), frente a un batch que acumuló "23 fallos" (RETRO-DD-1031).
 
-**Por qué**: en DD-896 (FM-02), 3 bugs distintos de S1 se descubrieron en Phase 6 después de implementar las 7 stories. Detectar el bug en S1 hubiera ahorrado ~80K tokens y un rewrite arquitectónico.
+**Excepción**: stories puramente frontend sin cambios de backend pueden ir en batch, siempre que la verificación sea por-story.
 
-**Para stories que no tocan BD** (UI, lógica pura, fixtures): mantener el batch test al final del Phase 4.
+**Por qué**: en DD-896 (FM-02), 3 bugs distintos de S1 se descubrieron en Phase 6 después de implementar las 7 stories. En DD-1031 el batch paralelo acumuló bugs de S1+S3+S4 que se propagaron por re-implementaciones. Secuencial + make-test por story detecta el bug en su origen.
 
-**Estimación de ahorro**: 50-100K tokens en provider migrations, en función de cuántas iteraciones de make test se evitan.
+**Estimación de ahorro**: 50-100K tokens en provider migrations (elimina la tormenta de debugging de errores acumulados).
+
+---
+
+## Rule T7 — Gate command integrity (correctness, not token-saving)
+
+**Aplica siempre** que el resultado de un test/typecheck sea el gate para
+avanzar una story o fase.
+
+**Cómo**: correr el comando del gate SIN pipe y asertar sobre **su propio**
+exit code (`make test-run`, luego `$?`). NUNCA pipear el comando del gate
+(`make ... | tail`, `... | grep`) — el shell reporta el exit code del ÚLTIMO
+comando (el del pipe), así que una suite que falla puede leerse como verde. Si
+hay que recortar la salida, redirigir a un archivo y leer el archivo.
+
+Además: al planificar el pipeline, verificar que cada gate declarado realmente
+**puede fallar**. Un `make test-run` sin `--exit-code-from`, un target que no
+propaga el fallo, o un eslint no instalado (exit 127) son gates muertos —
+arreglarlos o marcarlos `SKIPPED (broken: <reason>)` explícitamente, nunca
+tratarlos como verde.
+
+**Por qué**: REQ-20260611 S3 avanzó en FALSO VERDE (`make ... | tail`) con la
+suite fallando en collection. Ver también `kuraka-policies.md` → "Gate command
+integrity" y "Definition of green".
+
+---
+
+## Rule T8 — Digest pre-extraído para fix-runs y para el code-reviewer
+
+**Aplica cuando**: (a) lanzás un run de "aplicar N MINOR/IMPORTANT fixes" tras
+un review, o (b) invocás al [[code-reviewer]] sobre una superficie grande.
+
+**Problema**: estos runs recargan TODA la superficie para hacer cambios chicos.
+Casos reales: un fix de 2 líneas costó **154K tokens** (clinica-dental,
+REQ-20260625) porque el agente releyó el módulo/freeze/review completos; el
+code-reviewer corrió 25–58 min en 4/8 ciclos releyendo archivos uno por uno
+(kuraka-control P1). El costo es el contexto, no el trabajo.
+
+**Cómo** (usá el skill [[compact-context]] para producir el digest):
+
+- **Fix-run**: pasá SOLO `{archivo · rango de líneas · texto exacto del finding
+  a aplicar}` por cada fix. Prohibí re-leer la superficie completa salvo
+  ambigüedad real.
+- **Code-reviewer**: pasá al inicio `{esquema/contratos congelados + tabla de
+  decisión/invariantes a verificar + lista de archivos cambiados con su LOC}`.
+  Una tabla de ataque/invariantes precisa hace al reviewer rápido aunque la
+  superficie sea grande (validado en kuraka-control S5b-1).
+
+**Estimación de ahorro**: 40–80K tokens por fix-run; latencia del reviewer de
+25–58 min a in-band.

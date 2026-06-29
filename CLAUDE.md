@@ -15,8 +15,22 @@ that coordinates 16 subagents across an 8-phase dev lifecycle.
 ## Commands
 
 ```bash
+# One-shot initializer (RECOMMENDED entry point). Runs inspect → draft config →
+# project skeleton → mount → registry, in one command, from anywhere. The only manual
+# step left is restarting Claude Code in the target. Interactive or flag-driven (the
+# future control-plane web app wraps this). Never overwrites an existing config/layer.
+python3 kuraka-init.py [target_dir]                  # or: --target ... --name ... --yes
+python3 kuraka-init.py --target /path --name foo --yes --no-mount
+python3 kuraka-init.py --target /path --register-only --yes   # only upsert the registry note
+
+# Discover ALL Kuraka-mounted projects on disk and reconcile the registry (both ways:
+# mounted-but-unregistered, and registered-but-not-mounted). mount-kuraka.sh now also
+# auto-registers, so new mounts never drift. Read-only without --register.
+python3 kuraka-discover.py [--register] [--roots ~/Desarrollos,~/work]
+
 # Mount the vault into a consumer project (copies agents/skills/rules/artifacts into
 # .claude/ and updates .gitignore of the target). Always run in the target repo root.
+# (kuraka-init.py calls this for you; use directly only for a re-mount.)
 bash mount-kuraka.sh [target_dir]            # default target is $PWD
 
 # Validate frontmatter + registration readiness of a mounted .claude/
@@ -27,6 +41,18 @@ python3 kuraka-inspect.py [target_dir]       # JSON to stdout, summary to stderr
 
 # Aggregated telemetry dashboard across cycles
 python3 aggregate-telemetry.py [project_root]  # writes docs/process/agent-telemetry/DASHBOARD.md
+
+# Back up a project's FULL Kuraka state into the vault's unified store. Snapshots
+# layer/ (.claude/project), state/docs-process/ (REQ, stories, schemas, checkpoints)
+# and cycles/<REQ>/ (RETRO + telemetry + meta, branch-tagged). Run at Phase 7 (the
+# final-auditor calls it). Idempotent. Feeds cross-project pattern-detection AND
+# preserves Kuraka work outside the solution's git.
+python3 kuraka-backup.py [project_root]         # writes projects/<slug>/{layer,state,cycles}/
+python3 kuraka-archive.py [project_root]        # cycles-only (backward-compat wrapper)
+
+# Restore a project's Kuraka history from the vault on branch switch / re-mount.
+# mount-kuraka.sh calls this and ASKS before pasting; never overwrites without --force.
+python3 kuraka-restore.py [project_root]        # central → project (layer/ + state/)
 
 # Structural eval harness (runs from a consumer project that has mounted the artifacts)
 cd <target-project> && python3 -m pytest tests/kuraka/ -v

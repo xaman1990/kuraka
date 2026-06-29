@@ -61,6 +61,21 @@ Load the JSON report. Enumerate:
 If `confidence < 0.6`, flag the report as unreliable and ask the user
 to complete missing pieces manually before you proceed.
 
+**Verify the structure verdict against reality.** `kuraka-inspect` can
+misclassify a workspace monorepo as `single-package` (it happened to dbcanvas).
+If the report says `single-package`, confirm it: check the root `package.json`
+for a `workspaces` field and look for a populated `packages/*` or `apps/*` tree.
+If you find workspaces, treat the project as a monorepo regardless of the report
+and note the correction.
+
+**Verify a stack profile exists for the detected framework(s).** For each of
+`stack.backend.framework` and `stack.frontend.framework`, check that
+`${KURAKA_VAULT}/kuraka-artifacts/stack-profiles/<framework>.md` (or
+`.claude/stack-profiles/<framework>.md`) exists. If it is missing (e.g. Angular,
+Express, React were absent), STOP and either author a profile from `_template.md`
+or flag the gap to the user — running cycles without a profile means conventions
+reach subagents only via fragile manual injection.
+
 ### Step 2 — Sample representative code
 
 Pick 20–30 files across the detected layers:
