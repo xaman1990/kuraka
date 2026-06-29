@@ -498,7 +498,7 @@ mount-kuraka               # detecta historia en el central →
 
 ## Qué NO está en este repo
 
-- **Reglas 01–15** del proyecto sie_v2 (convenciones de equipo, viven en el git del proyecto)
+- **Reglas 01–15** de convenciones de equipo (son específicas del proyecto consumidor y viven en el git de ese proyecto)
 - **Código de aplicación** de ningún proyecto consumidor — **excepto el Control Plane**
   (`kuraka-control/`), que es la app oficial para gobernar el framework y se distribuye
   como **submódulo git** ([repo](https://github.com/xaman1990/kuraka-control)). Se construye
@@ -509,8 +509,8 @@ mount-kuraka               # detecta historia en el central →
 
 ## Estado del arte
 
-Baseline medido en el ciclo 2026-04-21 (homologate-new-scale-frontend):
-**458K tokens** para restyle de 7 archivos en 3 fases.
+Baseline medido en un ciclo de referencia:
+**458K tokens** para un restyle de 7 archivos en 3 fases.
 
 Con los patrones T1–T8 aplicados + model routing + agentes nativos registrados:
 proyección **~200K tokens** por ciclo equivalente (−55%). Con **RTK** activo
@@ -534,11 +534,4 @@ Uso personal. Compartible con el equipo bajo acuerdo.
 
 ---
 
-*Última revisión: 2026-06-28 (store central unificado `projects/<slug>/` + backup/restore branch-aware [`kuraka-backup.py`/`kuraka-restore.py`/`kuraka_common.py`, comando `/kuraka-backup`]; 4 olas de optimización de agentes/skills/rules desde retros cross-proyecto [`KURAKA-OPTIMIZATION-REPORT.md`]; componentes recomendados + RTK [`RECOMMENDED-COMPONENTS.md`]; agentes de seguridad checkmarx-remediation + pentest-auditor [18 agentes]; stack-profiles angular/express/react)*
-*Last synced: 2026-06-04 (session: 4 Mutua Kuraka cycles — nuevoaviso contract/idServicio, outbound handler-rename+e2e, outbound payload §2.6/§2.11 vs PDF, keycloak fallback removal — + RECURRING-ISSUES.md agent-optimization analysis. RETROs, REQs, SMOKE, PENDING synced. Agent prompt patches NOT yet applied — pending user review of RECURRING-ISSUES.md.)*
-*Last synced: 2026-06-10 (project `clinicaDental2026` (ZYNVET, Angular 19) added to `projects/clinicaDental2026.md` after REQ-20260610-vet-pets Cycle 1 — project-layer patches P1–P5 applied in-repo: review-checks verbatim-payload-fidelity / binding-pitfall-snippets / directed-contract-crosscheck, conventions NG0203 guard, agent appends, lessons LL-001/LL-002.)*
-*Last synced: 2026-06-11 (GuaiHome RETRO-REQ-20260611-mvp1-registro-perito-webhook §6 patches applied — only `skills/kuraka-policies.md` synced here (P2 framework part: "Gate command integrity" no-pipe gate rule). P1/P3/P4/P5/P6/T7/T8 are `.claude/project/` + `.claude/rules/` files, OUTSIDE the backup mapping → applied local-only in-repo, not synced.)*
-*Last synced: 2026-06-15 (project `wacertificadonodeudor` (Yanbal Certificado No Deudor, ASP.NET MVC 5 / .NET Framework 4.8, EF6 database-first, WCF/SOAP) mapped by `amauta` — registry card `projects/wacertificadonodeudor.md` updated from init stub (stack/conventions/risks/TODOs, confidence 0.85). Its `.claude/project/` layer + `kuraka.config.yaml` are in-repo only (OUTSIDE the backup mapping → not mirrored to vault `docs/`); the rule-16 `docs/` rsync was deliberately NOT run — that target is the framework's own docs and `--delete` with this project's skeleton would have clobbered it.)*
-*Last synced: 2026-06-16 (GuaiHome RETRO-REQ-20260616-DD-perito-webhook-audit §6 patches applied — framework agents synced: `agents/story-refiner.md` (P2: size existing functions before adding wiring → pre-authorize named extraction in AC), `agents/backend-developer.md` + `agents/frontend-developer.md` (P3: "Reporting Deviations" — announce + rationale + path-back, never substitute silently). P1 is `.claude/project/lessons-learned.md` (Postgres-only type → SQLite create_all blast radius) — in-repo only, OUTSIDE backup mapping. P4 (CI/CD) not applied per user.)*
-
-*Last synced: 2026-06-25 (bol-cert-no-deudor Checkmarx Low-closure cycle — scan `fee9e7d8`, 5 SAST Low confirmed, SCA=0, API Sec ⊂ SAST. Only `docs/process/checkmarx/` changed → mirrored that subfolder ONLY (md+json+html, scoped `--delete`); the project-wide `docs/` rsync was deliberately NOT run since vault `docs/` is shared and `--delete` would clobber other projects. New: PR-E section in checklist/remediacion/estimacion/inventario, `PR-E5-justificacion-not-exploitable.md`, raw `cx-*.low.json`. Agent + command `checkmarx-remediation.md` verified in-sync (unchanged this cycle).)*
+*Última revisión: 2026-06-29 — store central unificado `projects/<slug>/` + backup/restore branch-aware + CLI `kuraka` e instalador one-shot; 4 olas de optimización de agentes/skills/rules; componentes recomendados + RTK; soporte multi-entorno (`kuraka mount --target codex|cursor|antigravity`); 18 agentes; stack-profiles angular/express/react.*
