@@ -76,15 +76,17 @@ solución") = the vault owns `agents/*.md`; projects only ever get read-only cop
 
 This systematizes the manual P1–P6 exercise done on 2026-06-06 (see `RECURRING-ISSUES`).
 
-**Cross-project data source — `cycle-archive/`:** at every cycle's Final Audit (Phase 7),
-`final-auditor` runs `kuraka-archive.py <project>`, which pulls that cycle's RETRO +
-telemetry back into `cycle-archive/<project>/<REQ>/` and appends to a cross-project
-`INDEX.md`. This is the central memory of "where did Kuraka fail" across ALL projects —
-what lets `pattern-detector` find SYSTEMIC failures (not just per-project ones) and drive
-a general improvement of the agents and bases.
+**Cross-project data source — `projects/<slug>/`:** at every cycle's Final Audit (Phase 7),
+`final-auditor` runs `kuraka-backup.py <project>`, which snapshots that project's full
+Kuraka state back into the vault's unified store: `projects/<slug>/cycles/<REQ>/` (RETRO +
+telemetry + meta, branch-tagged), plus `layer/` and `state/`, and appends to
+`projects/INDEX.md`. This is the central memory of "where did Kuraka fail" across ALL
+projects — what lets `pattern-detector` find SYSTEMIC failures (not just per-project ones)
+and drive a general improvement of the agents and bases — and it also preserves Kuraka work
+outside the solution's git (restored by `kuraka-restore.py` on branch switch).
 
 ```
-RETRO in project  →  kuraka-archive.py  →  cycle-archive/ (vault, all projects)
+RETRO in project  →  kuraka-backup.py  →  projects/<slug>/{cycles,layer,state} (vault)
                   →  pattern-detector (cross-project)  →  RECURRING-ISSUES report
    →  [ TRIAGE in the front ]  →  routing decision per finding:
           framework fix?  → edit vault agent  (affects ALL projects)

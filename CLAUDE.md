@@ -42,10 +42,17 @@ python3 kuraka-inspect.py [target_dir]       # JSON to stdout, summary to stderr
 # Aggregated telemetry dashboard across cycles
 python3 aggregate-telemetry.py [project_root]  # writes docs/process/agent-telemetry/DASHBOARD.md
 
-# Pull a project's cycle diagnostics (RETRO + telemetry) BACK into the vault's central
-# cross-project archive. Run after a cycle's Final Audit (Phase 7); the final-auditor
-# also calls this on completion. Idempotent. Feeds cross-project pattern-detection.
-python3 kuraka-archive.py [project_root]        # writes cycle-archive/<project>/<REQ>/
+# Back up a project's FULL Kuraka state into the vault's unified store. Snapshots
+# layer/ (.claude/project), state/docs-process/ (REQ, stories, schemas, checkpoints)
+# and cycles/<REQ>/ (RETRO + telemetry + meta, branch-tagged). Run at Phase 7 (the
+# final-auditor calls it). Idempotent. Feeds cross-project pattern-detection AND
+# preserves Kuraka work outside the solution's git.
+python3 kuraka-backup.py [project_root]         # writes projects/<slug>/{layer,state,cycles}/
+python3 kuraka-archive.py [project_root]        # cycles-only (backward-compat wrapper)
+
+# Restore a project's Kuraka history from the vault on branch switch / re-mount.
+# mount-kuraka.sh calls this and ASKS before pasting; never overwrites without --force.
+python3 kuraka-restore.py [project_root]        # central → project (layer/ + state/)
 
 # Structural eval harness (runs from a consumer project that has mounted the artifacts)
 cd <target-project> && python3 -m pytest tests/kuraka/ -v

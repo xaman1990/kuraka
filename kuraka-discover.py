@@ -57,16 +57,21 @@ def find_mounts(roots: list[Path], max_depth: int) -> list[Path]:
 
 
 def registry_paths(vault: Path) -> dict[Path, str]:
-    """Map registered project path -> registry filename."""
+    """Map registered project path -> registry note label.
+
+    Reads the unified layout (projects/<slug>/registry.md) and, for transition,
+    any legacy top-level projects/*.md notes."""
     out = {}
     pdir = vault / "projects"
     if not pdir.is_dir():
         return out
-    for note in pdir.glob("*.md"):
+    notes = list(pdir.glob("*/registry.md")) + list(pdir.glob("*.md"))
+    for note in notes:
         for line in note.read_text(encoding="utf-8", errors="ignore").splitlines():
             m = re.match(r"^path:\s*(.+?)\s*$", line)
             if m:
-                out[Path(m.group(1).strip()).resolve()] = note.name
+                label = note.parent.name if note.name == "registry.md" else note.name
+                out[Path(m.group(1).strip()).resolve()] = label
                 break
     return out
 

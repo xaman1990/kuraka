@@ -73,10 +73,17 @@ def render_dashboard(cycles: list[dict]) -> str:
     lines.append("")
 
     # --- per-cycle summary ---
+    # NOTE: duration is WALL-CLOCK (includes tool/DB/container wait), NOT compute
+    # spend. Only `total_tokens` reflects model compute and is the budget signal.
+    # Runs with a non-ok status (session_limit / interrupted) are surfaced so a
+    # 0-token interrupted run is not misread as "no work" (guai: stripe-webhooks
+    # logged total_tokens: 0 on a session-limit run).
+    INCOMPLETE_STATUSES = {"session_limit", "interrupted", "error"}
+
     lines.append("## Cycles")
     lines.append("")
-    lines.append("| Cycle | Mode | Runs | Total tokens | Total tool uses | Total duration |")
-    lines.append("|-------|------|-----:|-------------:|----------------:|---------------:|")
+    lines.append("| Cycle | Mode | Runs | Total tokens | Total tool uses | Wall-clock | Status |")
+    lines.append("|-------|------|-----:|-------------:|----------------:|-----------:|--------|")
 
     for cycle in cycles:
         name = cycle.get("req_name", "(unknown)")
@@ -86,7 +93,16 @@ def render_dashboard(cycles: list[dict]) -> str:
         uses = sum(int(r.get("tool_uses", 0) or 0) for r in runs)
         ms = sum(int(r.get("duration_ms", 0) or 0) for r in runs)
         dur = f"{ms / 1000:.1f}s" if ms < 60_000 else f"{ms / 60_000:.1f}min"
-        lines.append(f"| {name} | {mode} | {len(runs)} | {tokens:,} | {uses} | {dur} |")
+        bad = sorted({
+            str(r.get("status")) for r in runs
+            if str(r.get("status", "ok")) in INCOMPLETE_STATUSES
+        })
+        # cycle-level status field too (e.g. interrupted mid-run, no telemetry)
+        cstatus = str(cycle.get("status", "")).strip()
+        if cstatus and cstatus not in ("ok",):
+            bad.append(cstatus)
+        status = "⚠️ " + ", ".join(bad) if bad else "ok"
+        lines.append(f"| {name} | {mode} | {len(runs)} | {tokens:,} | {uses} | {dur} | {status} |")
 
     # --- per-agent aggregate ---
     per_agent: dict[str, dict] = defaultdict(lambda: {
@@ -129,6 +145,14 @@ def render_dashboard(cycles: list[dict]) -> str:
         lines.append(
             f"| {agent} | {n} | {stats['tokens']:,} | {avg_t:,.0f} | {per_use:,.0f} | {avg_dur} | {flag} |"
         )
+
+    lines.append("")
+    lines.append(
+        "> _Over-budget is computed from **tokens only** (model compute). "
+        "Avg duration is **wall-clock** — it includes tool/DB/container wait and "
+        "is NOT a budget gate. A slow run with in-band tokens is a latency "
+        "artifact, not overspend; investigate latency separately._"
+    )
 
     # --- flags ---
     flagged = [(agent, stats) for agent, stats in per_agent.items() if stats["over_budget"]]

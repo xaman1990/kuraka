@@ -29,6 +29,14 @@ mount-kuraka
 /exit
 ```
 
+> 💡 **Recuperar historia perdida.** Al montar, si el Kuraka central ya tiene
+> historia de este proyecto (trabajaste en otra rama y no subiste lo de Kuraka a
+> git), `mount-kuraka` te preguntará **«¿Restaurar la historia de <slug>? [s/N]»**
+> y, si aceptás, re-pega `layer/` (`.claude/project`) y `state/docs-process/`
+> (REQ, historias, schemas…) sin pisar lo que ya exista. Así no perdés el trabajo
+> de Kuraka al cambiar/crear ramas, aunque viva fuera del git de la solución.
+> El backup al central se hace solo al cerrar cada ciclo (Phase 7).
+
 ---
 
 ## 🗂 Qué se mueve automáticamente con `git switch`

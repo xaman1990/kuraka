@@ -46,9 +46,13 @@ __pycache__/
 .pytest_cache/
 
 # ---------------------------------------------------------------------------
-# Analyzed-project data: subdirectories under projects/ hold per-project
-# discovery/scaffold output (e.g. projects/clinica-dental-2026/). Ignore the
-# subdirectories but KEEP the projects/*.md registry entries (the control plane
-# reads them). Supersedes the old per-file clinica-dental ignore.
+# Central project store (unified layout). projects/<slug>/ holds ALL per-project
+# Kuraka data: registry.md, layer/ (.claude/project snapshot), state/ (docs/process
+# snapshot), cycles/ (RETRO+telemetry) and backup.yaml. projects/INDEX.md is the
+# regenerated cross-project catalog. By project decision this store is
+# filesystem-only (NOT versioned): the WHOLE projects/ store is ignored. It
+# survives solution branch switches via the central copy and is restored by
+# kuraka-restore.py; it is not pushed with the vault.
+# (cycle-archive/ and projects-docs/ were merged into projects/<slug>/.)
 # ---------------------------------------------------------------------------
-projects/*/
+/projects

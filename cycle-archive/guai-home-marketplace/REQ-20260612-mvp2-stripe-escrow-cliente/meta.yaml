@@ -1,6 +1,0 @@
-project: guai-home-marketplace
-req: REQ-20260612-mvp2-stripe-escrow-cliente
-archived_at: 2026-06-14
-source_retro: /Users/xmn/Desarrollos/GuaiHome/Guai_Home_Marketplace/docs/process/agent-retrospectives/RETRO-REQ-20260612-mvp2-stripe-escrow-cliente.md
-has_telemetry: false
-verdict: "HIGH (on outcomes) · MEDIUM (on cost attribution)"

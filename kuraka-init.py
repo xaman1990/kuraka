@@ -32,13 +32,53 @@ import argparse
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 from datetime import date
 from pathlib import Path
 
+import kuraka_common as kc
+
 DEFAULT_VAULT = "/Users/xmn/Documents/Agentes/AgentesTrabajos/kuraka"
 DEFAULT_VERSION = "0.3.4"  # stamped into the registry note; override with --version
+
+# Recommended companion components. Kuraka works without them, but several agents
+# rely on or strongly benefit from them. Keep in sync with RECOMMENDED-COMPONENTS.md.
+# detect: a CLI name resolvable via shutil.which, or None when it's a Claude Code
+# skill/MCP plugin (not detectable from here — we just print the recommendation).
+RECOMMENDED_COMPONENTS = [
+    {
+        "name": "RTK (rtk-ai/rtk)", "priority": "strong", "detect": "rtk",
+        "used_by": "ALL agents (bash/test/grep/git output)",
+        "why": "CLI proxy that compresses command output before it hits context — 70–90% token savings.",
+        "install": "brew install rtk  (o: cargo install --git https://github.com/rtk-ai/rtk) && rtk init -g",
+    },
+    {
+        "name": "ui-ux-pro-max", "priority": "recommended", "detect": None,
+        "used_by": "frontend-developer, impeccable",
+        "why": "UI/UX design intelligence (styles, palettes, fonts, UX guidelines, charts).",
+        "install": "Claude Code plugin marketplace → add the ui-ux-pro-max skill.",
+    },
+    {
+        "name": "Playwright MCP", "priority": "recommended", "detect": None,
+        "used_by": "e2e-tester (Phase 6.5), checkmarx-remediation",
+        "why": "Browser end-to-end tests + live capture (Checkmarx login).",
+        "install": "Configure the Playwright MCP server in Claude Code settings.",
+    },
+    {
+        "name": "impeccable (skill)", "priority": "optional", "detect": None,
+        "used_by": "frontend-developer UI review/polish",
+        "why": "Visual audit and refinement of interfaces.",
+        "install": "Claude Code plugin marketplace → add the impeccable skill.",
+    },
+    {
+        "name": "Jira / ticket MCP", "priority": "optional", "detect": None,
+        "used_by": "po-analyst (Phase 1)",
+        "why": "Fetch the real ticket instead of pasting the description.",
+        "install": "Configure your issue-tracker MCP server in Claude Code settings.",
+    },
+]
 
 # language -> default package manager (best-effort; user/amauta confirms)
 PKG_BY_LANG = {
@@ -261,7 +301,7 @@ def run_mount(vault: Path, target: Path) -> int:
 
 def upsert_registry(vault: Path, name: str, target: Path, insp: dict,
                     mode: str, version: str, has_layer: bool) -> None:
-    reg = vault / "projects" / f"{name}.md"
+    reg = kc.registry_note(vault, name)  # projects/<slug>/registry.md (unified store)
     reg.parent.mkdir(parents=True, exist_ok=True)
     today = date.today().isoformat()
     stack = stack_summary(insp)
@@ -277,7 +317,7 @@ def upsert_registry(vault: Path, name: str, target: Path, insp: dict,
         text = repl("stack", f'"{stack}"', text)
         text = repl("has_project_layer", layer_val, text)
         reg.write_text(text, encoding="utf-8")
-        print(f"   ~ projects/{name}.md (registro actualizado)")
+        print(f"   ~ projects/{name}/registry.md (registro actualizado)")
         return
 
     fm = (
@@ -302,7 +342,39 @@ def upsert_registry(vault: Path, name: str, target: Path, insp: dict,
         "- Restart Claude Code rooted in the project to register subagents.\n"
     )
     reg.write_text(fm, encoding="utf-8")
-    print(f"   + projects/{name}.md (registrado en el vault)")
+    print(f"   + projects/{name}/registry.md (registrado en el vault)")
+
+
+def recommend_components(vault: Path) -> None:
+    """Print recommended companion components and detect which CLIs are present.
+
+    Never installs anything — external tools are an explicit user decision.
+    """
+    icon = {"strong": "🔴", "recommended": "🟡", "optional": "⚪"}
+    print("🧩 Componentes recomendados (opcional — Kuraka funciona sin ellos):")
+    print("")
+    missing_strong = []
+    for c in RECOMMENDED_COMPONENTS:
+        mark = icon.get(c["priority"], "•")
+        if c["detect"]:
+            present = shutil.which(c["detect"]) is not None
+            status = "✓ instalado" if present else "— falta"
+            if not present and c["priority"] == "strong":
+                missing_strong.append(c)
+        else:
+            status = "(skill/MCP — verificá en Claude Code)"
+        print(f"   {mark} {c['name']:<22} {status}")
+        print(f"      usa: {c['used_by']}")
+        print(f"      {c['why']}")
+        print(f"      instalar: {c['install']}")
+        print("")
+    if missing_strong:
+        print("   ⚠️  Falta un componente de alto impacto:")
+        for c in missing_strong:
+            print(f"      → {c['name']}: {c['install']}")
+        print("")
+    print(f"   Detalle completo: {vault}/RECOMMENDED-COMPONENTS.md")
+    print("")
 
 
 # ------------------------------------------------------------------------ main
@@ -320,6 +392,8 @@ def main() -> int:
     ap.add_argument("--register-only", action="store_true",
                     help="only inspect + upsert the registry note (no config/skeleton/mount)")
     ap.add_argument("--create", action="store_true", help="create target dir if missing")
+    ap.add_argument("--no-components", action="store_true",
+                    help="skip the recommended-components recommendation step")
     args = ap.parse_args()
 
     # Line-buffer so our prints interleave correctly with subprocess output even
@@ -352,7 +426,7 @@ def main() -> int:
         err(f"❌ target no es un directorio: {target}")
         return 1
 
-    name = slugify(args.name or target.name)
+    name = kc.project_slug(target, args.name)  # config project.name first → one slug everywhere
     mode = args.mode
 
     print("🪢 kuraka-init")
@@ -390,6 +464,11 @@ def main() -> int:
     # 5. registry (always)
     print("")
     upsert_registry(vault, name, target, insp, mode, args.version, has_layer)
+
+    # 6. recommended components (skip for register-only / --no-components)
+    if not args.register_only and not args.no_components:
+        print("")
+        recommend_components(vault)
 
     # final
     print("")

@@ -221,6 +221,10 @@ echo ""
 echo "  3. Invoca el Kuraka cuando empieces un requerimiento:"
 echo "     /kuraka o referencia skills/kuraka.md en el chat"
 echo ""
+echo "  4. (Recomendado) Componentes que potencian Kuraka:"
+echo "     $VAULT/RECOMMENDED-COMPONENTS.md"
+echo "     → RTK (ahorro 70-90% de tokens), ui-ux-pro-max, Playwright MCP..."
+echo ""
 
 # --- auto-register in the vault registry (best-effort; never fail the mount on this) ---
 if [ -f "$VAULT/kuraka-init.py" ]; then
@@ -228,4 +232,21 @@ if [ -f "$VAULT/kuraka-init.py" ]; then
         echo "   ✓ registrado en el registro del vault (projects/)"
         echo ""
     fi
+fi
+
+# --- offer to restore Kuraka history (branch-switch recovery) ---
+# If the central store has history for this project (worked on another branch and
+# not committed to the solution's git), offer to paste it back. Never overwrites
+# existing files. Safe no-op when there's no history.
+if [ -f "$VAULT/kuraka-restore.py" ]; then
+    if [ -t 0 ]; then
+        # real terminal → interactive prompt
+        python3 "$VAULT/kuraka-restore.py" "$TARGET" || true
+    else
+        # non-interactive (e.g. run by an agent / CI) → report only, never block
+        python3 "$VAULT/kuraka-restore.py" "$TARGET" --check || true
+        echo "   ℹ️  Para restaurar la historia (si la hay):"
+        echo "      python3 \"$VAULT/kuraka-restore.py\" \"$TARGET\"   # pregunta antes de pegar"
+    fi
+    echo ""
 fi
