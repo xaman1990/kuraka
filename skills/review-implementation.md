@@ -96,6 +96,22 @@ Stack-specific checks (e.g., for FastAPI: no try/except in endpoints, no
 Apply every check in `.claude/project/review-checks/code-reviewer.md`
 if it exists.
 
+### 5.5 Directed checks (run EVERY time — see `code-reviewer` agent for the full list)
+
+Default checks, not opt-in:
+
+- **Contract cross-check** — implemented request/response bodies vs frozen schema
+  + verbatim payloads, on field name, type, id-vs-hash, casing, serialization
+  format. Mismatch = BLOCKER-adjacent.
+- **Normalize-before-compare** — external strings used as keys/match targets are
+  normalized idempotently.
+- **Single-submit guard**, **design tokens defined**, **namespace type-imports**,
+  **sibling-guard parity**, **silent deviation**, **re-derive every number**.
+
+Use the **DEFERRED** severity for real gaps a later planned phase owns (e.g.
+Phase-6 tests) — never inflate them to BLOCKER. If a reviewer digest was passed
+(rules/17 T8), review against it instead of re-reading the whole surface.
+
 ### 6. Run verification
 
 ```bash

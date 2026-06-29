@@ -105,6 +105,59 @@ routine.
 
 ---
 
+## Gate command integrity (MANDATORY)
+
+When a test / typecheck result is the gate for advancing a story or phase,
+run the gate command WITHOUT a pipe and assert on **its own** exit code
+(e.g. `make test-run`, then check `$?`). NEVER pipe the gate command
+(`make ... | tail`, `... | head`, `... | grep`) — the shell reports the
+LAST command's exit code (the pipe's), so a failing suite can read as
+green. If output must be trimmed, redirect to a file and read the file;
+the gate still reads the test command's own exit code.
+
+Reference: REQ-20260611 S3 advanced on a FALSE GREEN (`make ... | tail`)
+while the suite was failing at collection (Sentry/jinja2 infra bug). See
+`rules/17-kuraka-token-optimizations.md` Rule T7.
+
+---
+
+## Definition of "green" (MANDATORY)
+
+"Green" — the condition that lets a story or Phase 4 advance — means **lint +
+typecheck + test ALL pass**, not just the test runner.
+
+- Test runners that transpile per-file (vitest, jest, ts-jest) do **not**
+  typecheck the dependency graph. A green test run can hide a `tsc --noEmit`
+  error. If the stack defines a `typecheck_cmd` for a workspace, the story is
+  not done until that command exits 0.
+- Every agent's "tests green" claim must imply a clean typecheck. Prefer a
+  single `make check` target (lint + typecheck + test) so the gate is one
+  command that cannot pass while the build is broken.
+
+Reference: kuraka-control LL-014 — an invalid `as string` cast rode green ~3
+cycles because the Phase-4 gate ran vitest only. Also `gate command integrity`
+above (the gate must be able to fail) and Phase 6.8 (`green ≠ working feature`).
+
+---
+
+## RTK token saver (transparent, if installed)
+
+If RTK (`rtk`) is installed with its global hook (`rtk init -g` → a `PreToolUse`
+hook `rtk hook claude` in `~/.claude/settings.json`), every Bash command an agent
+runs is **automatically rewritten** to its filtered `rtk` form (grep/cat/ls/git/
+test output is compressed before it reaches context). This needs NO per-agent
+wiring — all Kuraka subagents inherit it. Typical savings 70–90% on dev ops; check
+with `rtk gain`. See `RECOMMENDED-COMPONENTS.md`.
+
+**One exception — bypass the filter for byte-exact reads.** RTK truncates/dedups
+output, which can silently drop a field during a fidelity/contract check. When an
+agent needs the *exact, full* bytes — a verbatim-payload diff, an in-vivo contract
+probe, a frozen-schema cross-check — run the command through `rtk proxy <cmd>`
+(raw, unfiltered) instead of the rewritten form. Never run a contract cross-check
+on truncated output.
+
+---
+
 ## Token Budget (recommended)
 
 Nominal budget per phase to detect deviations:
@@ -124,10 +177,17 @@ Nominal budget per phase to detect deviations:
 | 6.7 Deployment | 30–60K | 120K |
 | 7 Final Audit | 40–80K | 150K |
 
-**Action if a phase exceeds "investigate if exceeds"**:
+These thresholds are **tokens (model compute)** — the only real spend signal.
+**Wall-clock `duration_ms` is NOT a budget gate**: it includes tool/DB/container
+wait, so analysis phases and DB-bearing test-writing are legitimately slow without
+overspending. A run that is slow but in-band on tokens is a latency artifact —
+investigate it separately, never mark it over budget (guai: 7 cycles ran 31–86 min
+yet reported `budget_ok: true`; the metric conflated wait with compute).
+
+**Action if a phase exceeds "investigate if exceeds" (tokens)**:
 1. Abort the phase if still running.
 2. Analyze telemetry (which files were read? how many tool_uses?).
-3. Apply patterns T1–T5 from `rules/17-kuraka-token-optimizations.md`.
+3. Apply patterns T1–T8 from `rules/17-kuraka-token-optimizations.md`.
 4. Re-launch with an optimized prompt.
 
 ---
@@ -218,6 +278,7 @@ so the `final-auditor` (Phase 7) can analyze consumption by agent.
      "total_tokens": 0,
      "tool_uses": 0,
      "duration_ms": 0,
+     "status": "ok | session_limit | interrupted | error",
      "produced": "<short description>",
      "budget_ok": true
    }
@@ -226,8 +287,11 @@ so the `final-auditor` (Phase 7) can analyze consumption by agent.
    invocation is its own entry — use `mode` to disambiguate.
 4. If you do **not** use `Agent` for a phase (direct orchestrator work),
    omit the entry — only track real invocations.
-5. Mark `budget_ok: false` if the phase exceeded its "investigate if
-   exceeds" threshold.
+5. Set `budget_ok` from **tokens vs the phase's "investigate if exceeds"
+   threshold** — never from duration, and never default to `true` without
+   actually comparing. A run cut short logs `status: "session_limit"` (so a
+   0-token entry isn't read as "no work"); `budget_ok` then reflects only the
+   tokens actually spent.
 
 The `final-auditor` reads this JSON in Phase 7 and produces the token
 ranking in the retro. Missing telemetry degrades the retro but doesn't

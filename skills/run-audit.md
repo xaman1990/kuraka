@@ -24,6 +24,16 @@ The complete development cycle:
 
 ## Steps
 
+### 0. Verify prior-retro application (RUN FIRST)
+
+Open the previous RETRO and its `## 6) Patches Proposed`. For each proposed
+patch, verify it was actually applied (grep the agent prompt / project-layer
+file, or confirm the file exists). Record the result as section `0)` of the new
+RETRO. A patch proposed last cycle but not landed is a Systemic Issue in this
+cycle; one that recurs un-applied across ≥2 retros is an escalating finding —
+apply it now if it is project-layer and safe. This closes the retro→apply→verify
+loop (without it, the same fixes get re-proposed forever).
+
 ### 1. Collect evidence
 
 Read:
@@ -95,17 +105,28 @@ Also copy to `RETRO-LATEST.md` for easy access.
 changes can be applied immediately; framework changes require
 contributing back to the framework repo."
 
-### 9. Sync the cycle back to the vault (MANDATORY — last step)
+### 9. Back up the cycle state to the vault (MANDATORY — last step)
 
-This is the diagnostic "sync" that closes the cycle. After the RETRO is
-written, archive it centrally so it joins the cross-project store in the
-Kuraka vault:
+This closes the cycle by snapshotting the project's full Kuraka state into the
+vault's unified store:
 
 ```bash
-python3 "${KURAKA_VAULT:-/Users/xmn/Documents/Agentes/AgentesTrabajos/kuraka}/kuraka-archive.py" <project-root>
+python3 "${KURAKA_VAULT:-/Users/xmn/Documents/Agentes/AgentesTrabajos/kuraka}/kuraka-backup.py" <project-root>
 ```
 
-Copies `RETRO-{REQ}.md` + `{REQ}-telemetry.json` into
-`cycle-archive/<project>/<REQ>/` and appends to the cross-project `INDEX.md`.
-Idempotent. Do NOT skip — this is what lets Kuraka learn from failures across
-ALL projects (the general improvement cycle). Confirm the command exited 0.
+Snapshots `layer/` (`.claude/project`), `state/docs-process/` (REQ, stories,
+test-plans, schemas, checkpoints) and `cycles/<REQ>/` (RETRO + telemetry + meta,
+branch-tagged) into `projects/<slug>/`, and appends to `projects/INDEX.md`.
+Idempotent. Do NOT skip: it (1) lets Kuraka learn from failures across ALL
+projects and (2) preserves the work outside the solution's git so a branch switch
+can't lose it (`kuraka-restore.py` pastes it back on the next mount). Confirm
+the command exited 0.
+
+### 10. Auto-trigger pattern-detector when due
+
+Count the RETROs in
+`${architecture.paths.docs_process_root}/agent-retrospectives/`. If the count is
+a multiple of 5, or `RECURRING-ISSUES.md` is stale (older than the 5 most recent
+retros), recommend running `detect-patterns` now and tell the user the count +
+staleness. Do not leave it as a silent optional step — in practice it has been
+deferred ~6 cycles while recurring patterns piled up unaggregated.

@@ -149,3 +149,12 @@ Create a test plan file at:
 6. **Respect Out of Scope** — never include test cases for items the
    story explicitly excluded. See `LL-004` in the project's lessons-learned
    if present.
+7. **Plan a full-contract assertion** — for any function returning a contract
+   consumed elsewhere, the plan must require asserting every consumer-used field
+   (especially secrets/tokens/ids), not just the happy subset.
+8. **Plan ≥1 live-path case + captured-payload fixture** for every external
+   client / endpoint / webhook — never plan only mocked-happy cases against a
+   described contract.
+9. **Shared-DB hygiene** — plan delta/`>=` assertions, never absolute row counts;
+   for WRITE surfaces plan the apply happy-path + idempotency test in Phase 4 so
+   "green" exercises the new behavior.

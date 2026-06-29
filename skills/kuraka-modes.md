@@ -20,6 +20,9 @@ into a pre-existing codebase.
 | **Reduced by risk** | Narrow change of low complexity | 3–5 phases |
 | **Lite** | Trivial change (9 strict criteria) | 3 phases |
 | **Retroactive** | Code already implemented without Kuraka (anti-pattern) | 4 phases |
+| **Deletion cycle** | Removing code / config / a dead path | Normal, with proof-of-death gates |
+| **Partial-smoke** (front-ready / backend-pending) | Frontend done but its backend endpoint isn't deployed yet | Normal, smoke verdict pre-declared partial |
+| **Incremental** | Trickled/ad-hoc work that would otherwise skip a REQ | Lightweight REQ + telemetry, still gated |
 
 ---
 
@@ -358,3 +361,40 @@ The savings come from:
 - No separate REVIEW_STORIES pass (merged into REVIEW_IMPLEMENTATION).
 - Phase 4 entirely skipped (already implemented).
 - Phase 6 reduced to validation, not writing.
+
+---
+
+## Mode: Deletion cycle (removing code / config / a dead path)
+
+Removal is not the inverse of addition — it has its own failure mode (removing a
+guard whose input still flows, orphaning config, breaking a live consumer). Run
+Normal phases but with proof-of-death gates:
+
+- **Enter on proof, not belief** — `po-analyst` GATE0 runs `grep -rn` for the
+  symbol across code + tests + docs + migrations and confirms **no live consumer**
+  before anything is removed. A single live reference blocks the cycle.
+- **Remove the superseded path AND its config in the same cycle** — a still-REQUIRED
+  config var feeding a deleted path is a finding.
+- **A removed guard is safe only if its guarded input is also gone** — `security-reviewer`
+  confirms this.
+- **Sweep dead constants/imports** left behind; grep-verify zero references after removal.
+
+## Mode: Partial-smoke (front-ready / backend-pending)
+
+When the frontend ships complete but its backend endpoint / catalog isn't deployed,
+Phase 6.8 can't prove create/update end-to-end. Instead of re-deriving "PASS —
+partial, accepted risk" every cycle:
+
+- `final-auditor` treats **front-ready/backend-pending as a first-class smoke
+  verdict** — pre-declared, not re-litigated.
+- The missing backend work is filed as an explicit follow-up task in the RETRO.
+- The cycle still closes, but the partial state is recorded, not hidden.
+
+## Mode: Incremental (trickled / ad-hoc work)
+
+Small ad-hoc fixes that would otherwise run with no REQ, no stories, and no
+telemetry (a whole cycle once ran untracked — guai db-refactor). Even trickled
+work opens a **lightweight REQ** + telemetry JSON so it's auditable, and still
+passes the non-skippable minimum gate (dev → code-reviewer → orchestrator verifies
+the real result). After 2 ad-hoc fixes on the same surface, STOP and open a proper
+delta-story group (reactive-fix circuit breaker).

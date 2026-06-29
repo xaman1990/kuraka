@@ -48,7 +48,16 @@ heavily co-dependent; prefer two profiles in most cases.
 | Profile | Coverage |
 |---|---|
 | `python-fastapi.md` | Python 3.10+, FastAPI, SQLAlchemy, Pydantic, Alembic, pytest |
+| `vue-pinia.md` | Vue 3, Pinia, Vite, TypeScript |
+| `angular.md` | Angular 16–19 (standalone + signals), TypeScript, RxJS |
+| `express.md` | Express 4–5, TypeScript, Node 20–22 |
+| `react.md` | React 18–19 + Vite, TypeScript (set `framework: react`) |
 | `_template.md` | Copy this to start a new profile |
+
+> The agent looks up `.claude/stack-profiles/${stack.*.framework}.md` by the
+> literal framework value in `kuraka.config.yaml`. Use `angular`, `express`,
+> `react` (not `react-vite`) so the lookup resolves; for a different value, copy
+> the matching profile to that name.
 
 ## Contributing a new profile
 

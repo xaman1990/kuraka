@@ -58,6 +58,14 @@ Adapt to the actual stack profile's layers.
    idiomatic layout + `architecture.paths.*`.
 5. **Dependencies** — which stories must be complete first.
 6. **Tests needed** — what test cases this story requires.
+7. **Resolved mechanism** — for any parse/compare/serialize/classify step with
+   >1 reasonable implementation, state the chosen mechanism in one AC line (no
+   prose hedge).
+8. **Binding snippets for structural pitfalls** — embed routing/DI-scope/
+   lazy-load/wiring corrections as the EXACT code block in an AC, never as a
+   prose "Technical Note".
+9. **Tag edge-case AC rows** `[normative]` vs `[illustrative]`. Rename/move
+   stories include a grep inventory of old-name references (evolve in place).
 
 ### 4. Naming and convention validation
 

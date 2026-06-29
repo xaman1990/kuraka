@@ -28,6 +28,29 @@ From the approved stories, extract:
 - Every index.
 - Every enum.
 
+### 1b. Contract source of truth — observe, do not recall (MANDATORY)
+
+The #1 historical cost across projects (clinica-dental 4 cycles, guai 7 cycles)
+is freezing a contract that was **recalled or read from docs** instead of
+**observed from the running system**. Before freezing any endpoint, table, or
+external-integration contract:
+
+- **Never trust API docs / Swagger / OpenAPI as the source of truth.** They drift
+  (phantom route prefixes, hidden required FKs, wrong field names, wrong
+  required/optional). Treat them as a hint only.
+- **Run an authenticated in-vivo probe** for each new/re-wired endpoint and record
+  it: e.g. send malformed JSON → expect 422 to reveal the real required fields;
+  use multipart for file endpoints. The freeze must cite the **probe artifact**,
+  not the docs, as its source. If RTK is active, run the probe via `rtk proxy <cmd>`
+  so the full response body is captured byte-exact (the filtered form may truncate).
+- **Every DB column / FK / constraint claim must quote the defining migration**
+  (`file:line`). Never assert schema from memory or from `pg_constraint` alone.
+- **Verbatim-payload fidelity:** if the user supplied exact request/response
+  bodies (Postman, backend, chat), build a `field · type · id-vs-hash/opaque ·
+  serialization-format · endpoint` table and diff EVERY generated interface
+  against it. A field present in the verbatim body but absent/renamed/retyped, or
+  a wrong serialization format (e.g. ISO-8601 vs `Y-m-d H:i:s`), is BLOCKER-adjacent.
+
 ### 2. Validate against the ticket
 
 | Table | In Stories | In Ticket | Match? | Action |
@@ -96,6 +119,12 @@ For EVERY foreign key:
 
 ## Migration Plan
 1. {migration_file}: {description}
+
+## Contract Provenance (per endpoint / external contract)
+| Contract | Source of truth | Evidence |
+|----------|-----------------|----------|
+| POST /api/v1/x | in-vivo 422 probe | {probe output / file} |
+| {table}.{col} | migration | {file:line} |
 
 ## Approved By
 - [ ] User approval

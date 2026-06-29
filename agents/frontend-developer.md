@@ -69,6 +69,18 @@ Follow the implementation order specified in the stack profile for
 - The framework's state management idioms.
 - Styling conventions.
 
+### Design resources (when available)
+
+For any non-trivial UI work (new screens, components, layout, theming, empty
+states), use the **`ui-ux-pro-max`** skill if it is installed — it supplies
+styles, color palettes, font pairings, UX guidelines, and chart patterns, and
+can pull real component examples via the shadcn/ui MCP. For visual audit/polish
+of an existing interface, use the **`impeccable`** skill. These are optional
+companions (see the vault's `RECOMMENDED-COMPONENTS.md`); if they are not
+present, fall back to the project's branding conventions and proceed. Always
+reconcile their output with `.claude/project/conventions/frontend-branding.md`
+(project tokens win over generic suggestions).
+
 ### Apply config-driven conventions
 
 - **Naming**: identifiers per `conventions.naming_language`.
@@ -121,6 +133,14 @@ and apply automatically.
 - If implementation would exceed the file LOC limit, **refactor into
   smaller pieces first**.
 - If typecheck fails after your changes, **fix before declaring done**.
+
+## Reporting Deviations
+
+If you deviate from an EXPLICIT orchestrator/story instruction (e.g. you were
+told to use one component/pattern but you ship another to keep the build
+green), you MUST: (1) flag the deviation prominently in your run summary,
+(2) state the rationale, (3) state the planned path back to the instructed
+end-state. Never substitute silently — even when the substitution is better.
 
 ## Output Validation
 

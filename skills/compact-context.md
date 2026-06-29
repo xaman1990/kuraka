@@ -87,6 +87,32 @@ The next agent expects specific fields in the input. Preserve:
 **Original length:** N tokens → Compacted: M tokens (X% reduction)
 ```
 
+## Mode: pre-extracted digest (for fix-runs and the code-reviewer)
+
+This skill also produces the **forward** digest that `rules/17` Rule T8 requires
+— so a fix-run or a review doesn't reload the whole surface. Same compression
+discipline, but instead of summarizing a *previous* agent's output you pre-cook
+the *next* agent's working set:
+
+- **Fix-run digest** (after a review proposes N MINOR/IMPORTANT fixes): emit one
+  block per fix — `{absolute file path · line range · exact finding text to
+  apply}`. Nothing else. The implementer applies these without re-reading the
+  module unless a fix is genuinely ambiguous.
+
+  ```markdown
+  ## Fix digest — apply these, do NOT re-read the full surface
+  1. `src/foo/bar.ts:142-148` — MINOR: replace `new Date(x)` with raw `x` (external YYYY-MM-DD, no coercion)
+  2. `src/foo/baz.ts:31` — IMPORTANT: add `if (!id) return;` guard before token-scope bind
+  ```
+
+- **Reviewer digest** (before invoking `code-reviewer` on a large surface): emit
+  the frozen schema/contracts + the named invariants / attack table to verify +
+  the changed-file list with per-file LOC. A precise invariant table keeps the
+  reviewer in-band even when the surface is large.
+
+Estimated savings: 40–80K tokens per fix-run; reviewer latency from 25–58 min to
+in-band (Rule T8 evidence).
+
 ## Rules
 
 1. **Never lose file paths** — downstream agents need them.

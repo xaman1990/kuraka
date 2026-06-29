@@ -79,6 +79,25 @@ Also update `RETRO-LATEST.md` as a symlink or copy of the latest retro.
 ```markdown
 # Final Audit - {REQ-name}
 
+## 0) Prior-Retro Application Check (RUN FIRST)
+
+Before analyzing this cycle, open the previous RETRO (and its `## 6) Patches
+Proposed` / project-layer recommendations) and verify each proposed patch was
+actually applied:
+
+| Prior patch (file · change) | Applied? | Evidence (grep / file exists) |
+|-----------------------------|:--------:|-------------------------------|
+
+- A patch proposed last cycle but **not landed** is a finding in *this* retro,
+  listed under "Systemic Issues".
+- A recommendation that recurs un-applied across ≥2 retros is an **escalating
+  systemic finding** — flag it and (if project-layer and safe) apply it now.
+
+Rationale: the framework keeps re-proposing the same fixes because nothing
+verifies they landed (clinica-dental: LL-004/005 + the contract-probe rule were
+proposed and never applied, so the same Swagger failure recurred a full cycle
+later). This closes the retro → apply → verify loop.
+
 ## 1) Summary
 - Total iterations: [low/medium/high]
 - Main causes: [brief list of rework causes]
@@ -175,19 +194,32 @@ Present the retro to the user and ask:
 changes can be applied immediately; framework changes require
 contributing back to the framework repo."
 
-**Then archive this cycle centrally** (the diagnostic half of the cycle's
-sync). After the RETRO is written, pull it + this cycle's telemetry back
-into the Kuraka vault so it joins the cross-project archive:
+**Then back up the whole cycle state centrally** (the durable half of the
+cycle's sync). After the RETRO is written, snapshot this project's full Kuraka
+state back into the vault's unified store:
 
 ```bash
-python3 "${KURAKA_VAULT:-/Users/xmn/Documents/Agentes/AgentesTrabajos/kuraka}/kuraka-archive.py" <project-root>
+python3 "${KURAKA_VAULT:-/Users/xmn/Documents/Agentes/AgentesTrabajos/kuraka}/kuraka-backup.py" <project-root>
 ```
 
-This copies `RETRO-{REQ}.md` + `{REQ}-telemetry.json` into
-`<vault>/cycle-archive/<project>/<REQ>/` and appends to the cross-project
-`INDEX.md`. It is idempotent. Why it matters: it lets `pattern-detector`
-later analyze where Kuraka failed across **all** projects — not just this
-one — feeding the general improvement cycle of the agents and bases.
+This snapshots, into `<vault>/projects/<slug>/`:
+- `layer/` — the project's `.claude/project/` specialization,
+- `state/docs-process/` — REQ, stories, test-plans, schemas, checkpoints,
+- `cycles/<REQ>/` — this RETRO + telemetry + meta (branch-tagged),
+and appends to `projects/INDEX.md`. Idempotent. Two reasons it matters:
+(1) it lets `pattern-detector` analyze where Kuraka failed across **all**
+projects — feeding the general improvement cycle of the agents/bases; and
+(2) it preserves the Kuraka work **outside the solution's git**, so a branch
+switch can't lose it — `kuraka-restore.py` pastes it back on the next mount.
+(`kuraka-archive.py` still exists for a cycles-only archive.)
+
+**Then auto-trigger `pattern-detector` when due.** Count the RETROs in
+`${architecture.paths.docs_process_root}/agent-retrospectives/`. If the count
+is a multiple of 5, or ≥5 retros exist and `RECURRING-ISSUES.md` is older than
+the 5 most recent retros, recommend running `detect-patterns` now (do not leave
+it as an optional manual step — it has been deferred ~6 cycles in practice while
+patterns accumulated). State the current count and the staleness in your closing
+message.
 
 ## Output Validation
 

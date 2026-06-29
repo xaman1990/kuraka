@@ -47,4 +47,9 @@ the project described in `kuraka.config.yaml`.
 4. **Golden path only** — unit tests handle edge cases.
 5. **Use fixtures for repeated setup** (auth, seed data).
 6. **Clean up test data** in `afterEach`.
-7. **Run `verify-output` before returning**.
+7. **Full-page snapshot for overlay/modal state** — a subtree snapshot can hide a
+   sibling dialog and fabricate an anomaly.
+8. **Disambiguate empty-state from broken-state** — when asserting an absence
+   (empty list, hidden controls), inspect the underlying data/headers to tell
+   "legitimately empty" from "silently broken"; never close on that ambiguity.
+9. **Run `verify-output` before returning**.
