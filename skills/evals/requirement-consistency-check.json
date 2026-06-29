@@ -1,0 +1,63 @@
+{
+  "skill_name": "requirement-consistency-check",
+  "created_at": "2026-05-19",
+  "description": "Test cases for the requirement-consistency-check skill. Each eval runs a realistic user prompt against an agent with the skill loaded; the skill must emit a CLARIFY block with the correct Status and the expected blocker classes. Derived from real DD-1031 rework. Assertions are prose for iteration 1 — tighten after first run.",
+  "evals": [
+    {
+      "id": 1,
+      "name": "fragmented-scope-no-dod",
+      "category": "C1-scope-fragmentation",
+      "prompt": "valida que el provider mutua quede bien y de paso revisa los hardcodes que falten",
+      "expected_output": "CLARIFY block, Status: BLOCKED. C1 blocker (no DoD / acceptance oracle: '¿qué define \"bien\"? ¿hay CSV oracle v1 y dónde?') and C7 blocker for 'los hardcodes que falten' (which files / which channel). No REQ written."
+    },
+    {
+      "id": 2,
+      "name": "reversible-decision-no-value",
+      "category": "C2-reversible-without-value",
+      "prompt": "externaliza todos los diccionarios hardcodeados del provider mutua a tablas en el seed",
+      "expected_output": "CLARIFY block, Status: BLOCKED. C2 blocker: structural change (new tables/pattern) with no stated concrete value; question must surface rule 05 §2 (immutable protocol vocab = acceptable hardcode), rule 18 YAGNI, and 'no peer provider externalizes this' — ask the user to confirm the value/trade-off before implementing. C6 (contradiction vs rule 05 §2) also flagged."
+    },
+    {
+      "id": 3,
+      "name": "migration-missing-v1-trace",
+      "category": "C3-missing-v1-trace",
+      "prompt": "migra el canal API de mutua igual que asitur, que los ACTUALIZACION se integren",
+      "expected_output": "CLARIFY block, Status: BLOCKED. C3 blocker: no v1 behavior trace — must ask for the v1 source path and the missing-datum branch per tipo (does v1 omit-as-success, error, or skip when no caseNotificationNumber?). Reference: not tracing this caused E1–E13."
+    },
+    {
+      "id": 4,
+      "name": "work-already-exists",
+      "category": "C4-pre-existing-impl",
+      "prompt": "necesito que migres los cases v1 de mutua de mysql a postgres como hace linea directa",
+      "expected_output": "CLARIFY block. C4 blocker: must audit the repo first (provider_migrations/mutuamadrilena.py already exists and mirrors LD) and ask the user whether to scope only the delta vs re-plan. Should NOT plan a from-scratch migration."
+    },
+    {
+      "id": 5,
+      "name": "channel-data-shape-assumption",
+      "category": "C5-data-shape",
+      "prompt": "resuelve el contrato de mutua por código postal en el canal API igual que en email",
+      "expected_output": "CLARIFY block, Status: BLOCKED. C5 blocker: the API payload may not carry a postal code (it doesn't — only empresa/ramo/anio/codSiniestro/idServicio); ask for a real API sample before designing ZIP→contract for that channel."
+    },
+    {
+      "id": 6,
+      "name": "ambiguous-encrypt-which-key",
+      "category": "C7-ambiguous-scope",
+      "prompt": "encripta las credenciales que subimos de mutua",
+      "expected_output": "CLARIFY block. C7 blocker: which fields (password/api_token vs username/client_id), which encryption key (local vs committed-seed vs prod), which env — must ask before encrypting so the ciphertext is valid for the target."
+    },
+    {
+      "id": 7,
+      "name": "clean-requirement-passes-through",
+      "category": "negative-clean",
+      "prompt": "Añade un índice en cases.guai_case_id; columna ya existe, sólo el índice CONCURRENTLY, sin cambio de lógica. DoD: migración Alembic + make test verde.",
+      "expected_output": "Status: CLEAN (one line). No blockers; bounded scope, explicit DoD, no v1/channel/decision ambiguity. Continues straight to analyze-requirement."
+    },
+    {
+      "id": 8,
+      "name": "mid-cycle-scope-expansion",
+      "category": "C1-scope-creep-rerun",
+      "prompt": "[mid-cycle, REQ already approved for the externalization] ahora también encripta las credenciales y corre la migración mysql->postgres",
+      "expected_output": "Skill re-runs on the DELTA only. CLARIFY block with new C7 (encryption key/scope) + C4 (migration may already exist) blockers; gate re-opens — no further implementation until resolved. Must NOT silently fold the new asks into the in-flight REQ."
+    }
+  ]
+}
