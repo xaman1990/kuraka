@@ -28,6 +28,13 @@ import subprocess
 import sys
 from pathlib import Path
 
+# Emit UTF-8 regardless of the console code page (Windows cp1252/cp850 crash guard).
+for _s in (sys.stdout, sys.stderr):
+    try:
+        _s.reconfigure(encoding="utf-8")
+    except (AttributeError, ValueError, OSError):
+        pass
+
 DEFAULT_VAULT = "/Users/xmn/Documents/Agentes/AgentesTrabajos/kuraka"
 DEFAULT_ROOTS = ["~/Desarrollos", "~/Documents/Trabajo"]
 MARKER = (".claude", "agents", "po-analyst.md")

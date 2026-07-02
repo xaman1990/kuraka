@@ -22,6 +22,14 @@ import sys
 from fnmatch import fnmatch
 from pathlib import Path
 
+# Emit UTF-8 regardless of the console code page (Windows cp1252/cp850 would
+# otherwise crash with UnicodeEncodeError on our emoji/box-drawing output).
+for _s in (sys.stdout, sys.stderr):
+    try:
+        _s.reconfigure(encoding="utf-8")
+    except (AttributeError, ValueError, OSError):
+        pass
+
 DEFAULT_VAULT = "/Users/xmn/Documents/Agentes/AgentesTrabajos/kuraka"
 
 
@@ -59,7 +67,7 @@ def run_py(script: str, *args: str, quiet: bool = False, check_env: bool = True)
     path = VAULT / script
     if not path.exists():
         return None
-    env = dict(os.environ, KURAKA_VAULT=str(VAULT)) if check_env else None
+    env = dict(os.environ, KURAKA_VAULT=str(VAULT), PYTHONIOENCODING="utf-8") if check_env else None
     try:
         if quiet:
             r = subprocess.run([sys.executable, str(path), *args],
@@ -78,7 +86,7 @@ def capture_py(script: str, *args: str) -> str:
         return ""
     try:
         r = subprocess.run([sys.executable, str(path), *args],
-                           env=dict(os.environ, KURAKA_VAULT=str(VAULT)),
+                           env=dict(os.environ, KURAKA_VAULT=str(VAULT), PYTHONIOENCODING="utf-8"),
                            capture_output=True, text=True)
         return r.stdout
     except OSError:

@@ -26,6 +26,13 @@ from pathlib import Path
 from collections import defaultdict
 from datetime import datetime
 
+# Emit UTF-8 regardless of the console code page (Windows cp1252/cp850 crash guard).
+for _s in (sys.stdout, sys.stderr):
+    try:
+        _s.reconfigure(encoding="utf-8")
+    except (AttributeError, ValueError, OSError):
+        pass
+
 
 # Budgets from rules/17 and kuraka-policies.md (median — "target")
 BUDGETS = {

@@ -27,6 +27,14 @@ import subprocess
 import sys
 from pathlib import Path
 
+# Emit UTF-8 regardless of the console code page (Windows cp1252/cp850 would
+# otherwise crash with UnicodeEncodeError on our emoji output).
+for _s in (sys.stdout, sys.stderr):
+    try:
+        _s.reconfigure(encoding="utf-8")
+    except (AttributeError, ValueError, OSError):
+        pass
+
 VAULT = Path(os.environ.get("KURAKA_VAULT", "") or Path(__file__).resolve().parent).expanduser().resolve()
 TARGETS = ("codex", "cursor", "antigravity")
 
@@ -40,7 +48,7 @@ def py(script: str, *args: str) -> int:
     if not path.exists():
         err(f"❌ script no encontrado: {path}")
         return 1
-    env = dict(os.environ, KURAKA_VAULT=str(VAULT))
+    env = dict(os.environ, KURAKA_VAULT=str(VAULT), PYTHONIOENCODING="utf-8")
     return subprocess.run([sys.executable, str(path), *args], env=env).returncode
 
 

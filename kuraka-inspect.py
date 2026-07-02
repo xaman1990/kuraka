@@ -27,6 +27,13 @@ from pathlib import Path
 from datetime import datetime
 from typing import Any
 
+# Emit UTF-8 regardless of the console code page (Windows cp1252/cp850 crash guard).
+for _s in (sys.stdout, sys.stderr):
+    try:
+        _s.reconfigure(encoding="utf-8")
+    except (AttributeError, ValueError, OSError):
+        pass
+
 
 # ---------------------------------------------------------------------------
 # Language detection — file counts per extension

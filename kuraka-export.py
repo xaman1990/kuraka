@@ -26,8 +26,11 @@ DEFAULT_VAULT = "/Users/xmn/Documents/Agentes/AgentesTrabajos/kuraka"
 TARGETS = ("codex", "cursor", "antigravity")
 
 # Commands that are sie_v2-project-specific (hardcode `cd sie_v2`) or Claude-only —
-# never exported to other tools, and hidden from the "how to start" guidance.
-EXPORT_SKIP = {"clean-cases", "lint", "run-tests", "sync-from-vault"}
+# never exported to other tools. sync-from-vault + kuraka-wizard are Claude-Code
+# plumbing (mount .claude/, restart Claude session, register subagents); in
+# Cursor/Codex/Antigravity the "mount" is AGENTS.md + native commands, so those
+# would only mislead. Onboarding for non-Claude tools is /amauta or /inti+/arki.
+EXPORT_SKIP = {"clean-cases", "lint", "run-tests", "sync-from-vault", "kuraka-wizard"}
 
 # Where each tool reads its slash-commands from, and how it invokes them.
 TARGET_CMD_DIR = {
@@ -357,16 +360,25 @@ def _print_start_guide(env: str, project: Path | None) -> None:
     elif env == "cursor":
         print(f"   1. Abrí el proyecto en Cursor:  {proj}")
         print("   2. En el chat, tipeá  /  → aparecen los comandos de .cursor/commands/")
-        print("   3. Empezá con  /kuraka-wizard  (o /amauta · /inti+/arki según el caso)")
+        print("   3. NO necesitás montar .claude/ — en Cursor el setup es AGENTS.md +")
+        print("      estos comandos. Reiniciá el chat de Cursor para que tome AGENTS.md.")
+        print("   4. Onboarding según el proyecto:")
+        print("      • con código, sin config →  /amauta          (brownfield)")
+        print("      • proyecto nuevo (idea)  →  /inti  y  /arki   (greenfield)")
+        print("      • ya listo, a trabajar   →  /kuraka <requerimiento>")
     elif env == "codex":
         print("   1. Instalá los comandos (Codex los lee de tu home, no del repo):")
         print("        mkdir -p ~/.codex/prompts && cp .codex/prompts/*.md ~/.codex/prompts/")
         print(f"   2. Abrí Codex en el proyecto:  cd {proj} && codex")
-        print("   3. Tipeá  /  y elegí, p.ej.  /prompts:kuraka-wizard  (o /kuraka-wizard)")
+        print("   3. El setup es AGENTS.md + estos comandos (no hay .claude/ que montar).")
+        print("   4. Onboarding:  /prompts:amauta (brownfield) · /prompts:inti + /prompts:arki")
+        print("      (greenfield) · luego  /prompts:kuraka <requerimiento>")
     elif env == "antigravity":
         print(f"   1. Abrí el workspace en Antigravity:  {proj}")
         print("   2. Invocá los workflows con  /nombre  (leídos de .agent/workflows/)")
-        print("   3. Empezá con  /kuraka-wizard")
+        print("   3. El setup es AGENTS.md + estos comandos (no hay .claude/ que montar).")
+        print("   4. Onboarding:  /amauta (brownfield) · /inti + /arki (greenfield) ·")
+        print("      luego  /kuraka <requerimiento>")
     print("")
 
 

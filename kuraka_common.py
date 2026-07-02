@@ -22,8 +22,23 @@ import hashlib
 import re
 import shutil
 import subprocess
+import sys
 from datetime import date
 from pathlib import Path
+
+
+def force_utf8_io() -> None:
+    """Emit UTF-8 no matter the console code page. Windows' legacy console
+    (cp1252/cp850) otherwise raises UnicodeEncodeError on our emoji/box-drawing
+    output. Importing this module applies it, so every CLI tool is covered."""
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8")  # Python 3.7+
+        except (AttributeError, ValueError, OSError):
+            pass
+
+
+force_utf8_io()
 
 STORE_DIRNAME = "projects"
 
