@@ -1,69 +1,85 @@
 ---
-description: "Guided Kuraka onboarding wizard. Detects the project's state (mounted? config? code? greenfield vs brownfield) and runs or routes the correct next startup step — mount/update, inspect, amauta (brownfield) or inti (greenfield), up to ready-for-/kuraka. Re-runnable: each run advances one stage, stopping cleanly at restart boundaries."
+description: "Guided, PLATFORM-AWARE Kuraka onboarding wizard. First detects which AI tool it's running in (Claude Code / Cursor / Codex / Antigravity), then verifies Kuraka is correctly mounted FOR THAT platform, then routes the project's next step (mount → inspect → amauta brownfield / inti+arki greenfield → ready-for-/kuraka). Re-runnable: each run advances one stage and reports state."
 ---
 
-# Task: Kuraka onboarding wizard
+# Task: Kuraka onboarding wizard (multiplataforma)
 
-Walk the project from "nothing" to "ready for a Kuraka cycle", doing the
-scriptable steps and routing to the right agent. Re-run it after each
-restart; it always reports state and advances the next pending stage.
+Purpose: (1) figure out **which AI platform** you're running in, (2) verify Kuraka
+is **correctly mounted for that platform**, (3) route the project to the right next
+onboarding step. Re-run after each restart; it always reports state and advances the
+next pending stage.
 
-**Portability**: vault from `$KURAKA_VAULT` (fallback default); project
-root auto-detected via `.claude/`.
+**Portability**: this wizard may run in Claude Code, Cursor, Codex or Antigravity,
+on macOS/Linux/Windows. Do **not** assume `bash` — inspect the project with your own
+file tools, or a shell command appropriate to the OS. Vault path comes from
+`$KURAKA_VAULT`; the CLI is `kuraka` (Unix) / `kuraka` · `kuraka.cmd` (Windows).
 
-## Step 1 — Gather state
+## Step 0 — Detect the platform (do this FIRST)
 
-Run this block and read its output. It collects everything the wizard
-decides on:
+Determine which environment you are running in. Infer it from **where this command
+lives** plus **which artifacts exist**; if it's ambiguous, **ask the user**:
+"¿En qué entorno estás usando Kuraka: Claude Code, Cursor, Codex o Antigravity?"
 
-```bash
-VAULT="${KURAKA_VAULT:-/Users/xmn/Documents/Agentes/AgentesTrabajos/kuraka}"
-DIR="$PWD"; while [ "$DIR" != "/" ] && [ ! -d "$DIR/.claude" ]; do DIR="$(dirname "$DIR")"; done
-ROOT="${DIR}"; [ -d "$ROOT/.claude" ] || ROOT="$PWD"
+| Signal (this command's location / how it was invoked) | Platform |
+|-------------------------------------------------------|----------|
+| under `.claude/commands/`, and `.claude/agents/` exists | **Claude Code** |
+| under `.cursor/commands/`, `AGENTS.md` + `.cursor/` exist | **Cursor** |
+| invoked as `/prompts:…` from `~/.codex/prompts/`, `AGENTS.md` exists | **Codex** |
+| under `.agent/workflows/`, `AGENTS.md` + `.agent/` exist | **Antigravity** |
 
-echo "VAULT=$VAULT  (exists: $([ -d "$VAULT" ] && echo yes || echo NO))"
-echo "PROJECT_ROOT=$ROOT"
-echo "mounted_claude=$([ -d "$ROOT/.claude/agents" ] && echo yes || echo no)"
-echo "agents_count=$(ls "$ROOT/.claude/agents/"*.md 2>/dev/null | wc -l | tr -d ' ')"
-echo "has_config=$([ -f "$ROOT/kuraka.config.yaml" ] && echo yes || echo no)"
-echo "has_project_layer=$([ -d "$ROOT/.claude/project" ] && echo yes || echo no)"
-echo "has_inspect=$([ -f "$ROOT/inspect-report.json" ] && echo yes || echo no)"
-# crude greenfield test: count source-ish files OUTSIDE .claude/, docs/, .git/
-echo "source_files=$(find "$ROOT" -type f \
-   \( -name '*.ts' -o -name '*.js' -o -name '*.py' -o -name '*.go' -o -name '*.rb' \
-      -o -name '*.java' -o -name '*.php' -o -name '*.rs' -o -name '*.vue' \) \
-   -not -path '*/.claude/*' -not -path '*/.git/*' -not -path '*/node_modules/*' \
-   -not -path '*/docs/*' 2>/dev/null | head -50 | wc -l | tr -d ' ')"
-```
+**State the detected platform out loud before continuing.**
 
-## Step 2 — Decide and act
+## Step 1 — Verify the mount is correct FOR THAT platform
 
-Apply the FIRST matching rule, do its action, then report status and stop
-(or continue only where noted). Always end by telling the user the single
-next thing to do.
+Check the expected artifacts for the detected platform. Each platform mounts
+differently — Claude Code uses native subagents under `.claude/`; the others adopt
+roles via `AGENTS.md` + native slash-commands. If the expected artifacts are
+missing, the mount for this platform hasn't run: give the user the exact command
+and STOP.
+
+| Platform | Must exist | If missing → run (from the project root) | Then |
+|----------|-----------|-------------------------------------------|------|
+| Claude Code | `.claude/agents/` (18 .md), `.claude/commands/`, `.claude/skills/` | `kuraka mount`  (elegí Claude) | restart Claude Code: `/exit` + new session (subagents register only at start) |
+| Cursor | `AGENTS.md`, `.cursor/commands/`, `.cursor/rules/` | `kuraka mount --target cursor` | reiniciá el chat de Cursor (recarga `AGENTS.md`) |
+| Codex | `AGENTS.md`, and prompts in `~/.codex/prompts/` | `kuraka mount --target codex` (luego copiá `.codex/prompts/*.md` → `~/.codex/prompts/`) | reabrí `codex` |
+| Antigravity | `AGENTS.md`, `.agent/workflows/` | `kuraka mount --target antigravity` | recargá los workflows |
+
+Report: the platform, whether it is **correctly mounted for that platform**, and
+what (if anything) is missing. If the mount is missing, STOP here with the single
+command to run and the restart note — do not proceed to Step 2.
+
+## Step 2 — Project state (config + layer) — same across platforms
+
+Once the platform mount is OK, check the project's Kuraka config (the project layer
+lives in `.claude/project/` for **all** platforms — every agent/role reads it):
+
+- `kuraka.config.yaml` present?
+- `.claude/project/` layer present?
+- any source files present (brownfield) or none (greenfield)? (heuristic: count
+  `*.ts/js/py/go/rb/java/php/rs/vue` outside `.claude/`, `.git/`, `node_modules/`, `docs/`)
+
+Apply the FIRST matching rule, act, then report and close:
 
 | # | Condition | Action |
-|---|---|---|
-| A | `VAULT exists = NO` | Stop. Tell the user to `export KURAKA_VAULT="/ruta/a/kuraka"` (and add to `~/.zshrc`), then re-run `/kuraka-wizard`. |
-| B | `mounted_claude = no` OR `agents_count = 0` | Run `bash "$VAULT/mount-kuraka.sh" "$ROOT"`. Then STOP: tell the user to restart Claude Code (`/exit` + new session) and run `/kuraka-wizard` again — agents register only at session start. |
-| C | `has_config = yes` AND `has_project_layer = yes` | Project is **ready**. Run `bash "$VAULT/validate-kuraka.sh" "$ROOT"` and report PASS/FAIL. Then offer the two entry points: `/kuraka` for a defined requirement, or Discovery ("tengo una idea, no un requerimiento") for a fuzzy new feature. Done. |
-| D | `has_config = no` AND `source_files` is `0` (greenfield) | This is a **greenfield** project. Tell the user to invoke `inti` ("quiero empezar un proyecto nuevo: …") to run discovery, then `arki` for the architecture + config. (Optionally run Discovery/Tinkuy first if the idea is fuzzy.) Stop. |
-| E | `has_config = no` AND `source_files` > 0 (brownfield) | This is a **brownfield** project. Ensure the inspect report: if `has_inspect = no`, run `python3 "$VAULT/kuraka-inspect.py" "$ROOT" > "$ROOT/inspect-report.json"`. Then invoke the `amauta` subagent to generate `kuraka.config.yaml` + `.claude/project/` from the real code (golden rule: never invent — mark `<TODO>`). If `amauta` isn't a known subagent, tell the user to restart and run `/kuraka-wizard` (or `/amauta`) again. |
+|---|-----------|--------|
+| A | config **and** layer both present | **Ready.** Validate if you can (`kuraka validate`), then offer the two entry points: `/kuraka <requerimiento>`, or Discovery ("tengo una idea, no un requerimiento") for a fuzzy feature. Done. |
+| B | no config **and** no source files → **greenfield** | Route to `inti` (discovery), then `arki` (architecture + config). In Claude these are `/inti` and `/arki`; in Cursor/Codex/Antigravity, adopt the `inti` then `arki` role. |
+| C | no config **and** has source files → **brownfield** | Ensure the inspect report (if absent, run `kuraka inspect > inspect-report.json` or `python3 "$KURAKA_VAULT/kuraka-inspect.py" . > inspect-report.json`). Then run `amauta` (`/amauta` command or role) to generate `kuraka.config.yaml` + `.claude/project/` from the **real code** — golden rule: never invent, mark unknowns `<TODO>`. |
 
-## Step 3 — Always close with a clear next step
+## Step 3 — Always close with one clear next step
 
-End every run with one line: exactly what the user should do next
-(restart, resolve TODOs in `kuraka.config.yaml`, run `/kuraka`, etc.).
-Never leave the user guessing which stage they're in.
+End every run with a single line: exactly what the user should do next (mount for
+your platform + restart, resolve `<TODO>`s in `kuraka.config.yaml`, run `/kuraka`,
+etc.). Never leave the user guessing which stage they're in.
 
 ## Notes
 
-- The wizard is the in-session equivalent of `kuraka-init.py` (the
-  external one-shot initializer). Use the wizard when Kuraka is already
-  partly present in the project; use `kuraka-init.py` for a cold start
-  from a fresh checkout.
-- Greenfield detection (`source_files`) is heuristic. If the user says the
-  project has code but it shows 0 (unusual languages, generated dirs),
-  treat it as brownfield (rule E).
-- This wizard does not write business code. It only mounts, inspects,
-  generates config/project layer (via amauta), and routes.
+- **Platform first, mount-check second.** The wizard verifies the mount that matches
+  the environment you're *actually* in — not just Claude. A Cursor mount has no
+  `.claude/agents/` and that's correct; its "mount" is `AGENTS.md` + `.cursor/commands/`.
+- Greenfield detection is heuristic. If the user says there's code but it shows 0
+  (unusual languages / generated dirs), treat it as brownfield (rule C).
+- The wizard writes no business code. It only mounts/inspects, generates the config +
+  project layer (via `amauta`), and routes.
+- `kuraka-init.py` (or `kuraka init`) is the external cold-start equivalent; use the
+  wizard when Kuraka is already partly present in the project.
