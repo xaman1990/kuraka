@@ -31,6 +31,10 @@ python3 kuraka-discover.py [--register] [--roots ~/Desarrollos,~/work]
 # Mount the vault into a consumer project (copies agents/skills/rules/artifacts into
 # .claude/ and updates .gitignore of the target). Always run in the target repo root.
 # (kuraka-init.py calls this for you; use directly only for a re-mount.)
+# On a TTY it shows a banner + a small menu (which categories to mount / status-only)
+# and a live MCP-component detection block; piped/agent runs mount everything silently.
+# It also (a) snapshots any local agent tuning BEFORE the rsync and (b) re-applies
+# project overrides AFTER it (see "Project-specific overrides" below).
 bash mount-kuraka.sh [target_dir]            # default target is $PWD
 
 # Validate frontmatter + registration readiness of a mounted .claude/
@@ -43,16 +47,20 @@ python3 kuraka-inspect.py [target_dir]       # JSON to stdout, summary to stderr
 python3 aggregate-telemetry.py [project_root]  # writes docs/process/agent-telemetry/DASHBOARD.md
 
 # Back up a project's FULL Kuraka state into the vault's unified store. Snapshots
-# layer/ (.claude/project), state/docs-process/ (REQ, stories, schemas, checkpoints)
-# and cycles/<REQ>/ (RETRO + telemetry + meta, branch-tagged). Run at Phase 7 (the
-# final-auditor calls it). Idempotent. Feeds cross-project pattern-detection AND
-# preserves Kuraka work outside the solution's git.
-python3 kuraka-backup.py [project_root]         # writes projects/<slug>/{layer,state,cycles}/
-python3 kuraka-archive.py [project_root]        # cycles-only (backward-compat wrapper)
+# layer/ (.claude/project), state/docs-process/ (REQ, stories, schemas, checkpoints),
+# cycles/<REQ>/ (RETRO + telemetry + meta, branch-tagged) AND overrides/ (agent/skill/
+# command files that diverge from the vault baseline — project-specific tuning). Run at
+# Phase 7 (the final-auditor calls it). Idempotent. Feeds cross-project pattern-detection
+# AND preserves Kuraka work outside the solution's git.
+python3 kuraka-backup.py [project_root]                 # layer+state+cycles+overrides
+python3 kuraka-backup.py [project_root] --overrides-only  # only re-snapshot overrides (mount pre-flight)
+python3 kuraka-archive.py [project_root]                # cycles-only (backward-compat wrapper)
 
 # Restore a project's Kuraka history from the vault on branch switch / re-mount.
-# mount-kuraka.sh calls this and ASKS before pasting; never overwrites without --force.
-python3 kuraka-restore.py [project_root]        # central → project (layer/ + state/)
+# mount-kuraka.sh calls this and ASKS before pasting layer/state; overrides are ALWAYS
+# re-applied (no prompt) so project agent tuning survives every mount.
+python3 kuraka-restore.py [project_root]                 # central → project (layer + state + overrides)
+python3 kuraka-restore.py [project_root] --overrides-only  # only re-apply overrides (always; used by mount)
 
 # Structural eval harness (runs from a consumer project that has mounted the artifacts)
 cd <target-project> && python3 -m pytest tests/kuraka/ -v
@@ -72,7 +80,7 @@ or standalone Python 3 (no dependencies).
 | `agents/*.md`             | `.claude/agents/`                 | Subagent definitions (16)                 |
 | `agents/contexts/*.md`    | `.claude/agents/contexts/`        | Per-agent rule bundles and output schemas |
 | `skills/*.md`             | `.claude/skills/`                 | Skill prompts (phase-level)               |
-| `commands/*.md`           | `.claude/commands/`               | Slash-command executable prompts          |
+| `commands/*.md`           | `.claude/commands/` · `.cursor/commands/` · `.agent/workflows/` · `.codex/prompts/` | Slash-command prompts. Claude: copied verbatim. Non-Claude: rendered by `kuraka-export.py::export_commands` (arg-placeholder + role preamble adapted per tool). `EXPORT_SKIP` = clean-cases/lint/run-tests (sie_v2) + sync-from-vault (Claude-only). |
 | `rules/16-*.md`, `17-*.md`, `18-*.md` | `.claude/rules/`           | Framework meta-rules (only these)         |
 | `kuraka-artifacts/docs/process/**`    | `docs/process/**`           | lessons-learned + telemetry dashboard template |
 | `kuraka-artifacts/tests/kuraka/**`    | `tests/kuraka/**`           | Structural eval harness                   |
@@ -83,21 +91,48 @@ but their `.claude/` may be synced **back** to the vault by the hook in
 if the consumer's `.claude/` is incomplete (e.g. just after `git switch`), it aborts
 that category's sync rather than wiping the vault.
 
-### Wikilinks vs backticks — critical when editing
+### Project-specific overrides (agent/skill/command tuning)
 
-The vault stores agent/skill cross-references as Obsidian wikilinks (`[[po-analyst]]`)
-so the graph view works. Claude Code at runtime expects backticks (`` `po-analyst` ``).
-Conversion happens in both directions:
+Consumer projects often tune a framework agent to their needs (e.g. editing
+`.claude/agents/backend-developer.md`). Those dirs are gitignored **and** overwritten
+by the vault rsync on every mount, so the tuning would otherwise be lost. The override
+subsystem preserves it, centrally, with zero change to how you tune (keep editing the
+files directly):
 
-- **Vault → project**: `mount-kuraka.sh` and `00-RESTAURAR-PROYECTO.md`'s one-liner
-  convert `[[name]]` → `` `name` `` when copying into `.claude/agents|skills|rules`.
+- **Detect** (`kuraka_common.detect_overrides`): a `.claude/{agents,skills,commands}/*.md`
+  file is an override if it diverges byte-for-byte from its vault baseline (or has no
+  baseline = custom). `*.append.md` fragments are excluded.
+- **Snapshot** (`kuraka-backup.py`, also `--overrides-only`): copies divergent files to
+  `projects/<slug>/overrides/<cat>/<file>` + a `MANIFEST.md`. If nothing diverges it
+  **clears** the store subdir, so a reverted tuning disappears (no orphan re-applied later).
+- **Re-apply** (`kuraka-restore.py --overrides-only`): overwrites the fresh vault copy
+  with the stored overrides — the project override always wins. `mount-kuraka.sh` runs
+  this on EVERY mount (TTY or not), and also snapshots pre-rsync so an un-backed-up tuning
+  is captured before it's clobbered.
+
+Trade-off (intentional): an override is a whole-file copy, so that one agent stops
+receiving framework updates while the override exists. Delete the override (revert the
+file to the vault version, then backup) to opt back into framework updates.
+
+### Wikilinks vs backticks — mostly historical
+
+Historically the vault stored cross-references as Obsidian wikilinks (`[[po-analyst]]`)
+and the runtime expects backticks (`` `po-analyst` ``). Today the vault content under
+`agents/`, `skills/`, `rules/`, `commands/` is **already backticked** (only a couple of
+stray `[[…]]` remain), and **`mount-kuraka.sh` does NOT convert — it is a straight rsync**.
+This is what makes override detection a safe byte comparison (no formatting confound).
+The reverse conversion still exists for the sync-back path:
+
 - **Project → vault**: `scripts/sync-obsidian.sh` converts `` `name` `` → `[[name]]`
   via a `sed` expression built from the hardcoded `AGENTS=()` and `SKILLS=()` arrays
   near the top of that script.
 
-**When you edit here**: keep wikilinks in `agents/`, `agents/contexts/`, `skills/`, and
-`rules/` content. `commands/*.md` is copied **verbatim** in both directions — never
-use wikilinks in those files; they would break grep patterns in the executable prompts.
+**When you edit here**: prefer backticks (`` `po-analyst` ``) — that is what the runtime
+reads and what the vault already uses. If you do add a wikilink in `agents/`,
+`agents/contexts/`, `skills/`, or `rules/` for the graph view, note that mount will copy
+it **verbatim** (no conversion), so it reaches the runtime as a literal `[[…]]`.
+`commands/*.md` is copied verbatim too — never use wikilinks there; they would break grep
+patterns in the executable prompts.
 
 **When you rename or add an agent/skill**: update the `AGENTS=()` / `SKILLS=()` array
 in `scripts/sync-obsidian.sh` or the reverse conversion breaks silently.

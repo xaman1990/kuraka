@@ -1,3 +1,8 @@
+---
+description: "Kuraka orchestrator: drive a full requirement through the gated multi-phase multi-agent dev workflow (PO analysis → story refinement → test planning → architect+schema-freeze → implementation → code/security review → tests/E2E/deploy-verify → final audit), scaling phases to the change's risk. The main entry point for any feature or change."
+argument-hint: "<requerimiento / ticket Jira / alcance>"
+---
+
 Act as the **Kuraka** development orchestrator for the requirement described in the arguments below.
 
 Arguments (requirement / Jira ticket / scope): $ARGUMENTS

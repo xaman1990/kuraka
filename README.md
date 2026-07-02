@@ -1,5 +1,9 @@
 # Kuraka — Personal Development Agent System
 
+<p align="center">
+  <img src="assets/kuraka-logo.png" alt="Kuraka" width="240">
+</p>
+
 > **Kuraka** (Quechua, *kuraq* = "el mayor"): líder local que coordinaba
 > especialistas (quipucamayocs) bajo un plan mayor. Aquí es el orquestador de
 > agentes de IA que dirigen el ciclo de desarrollo.
@@ -207,7 +211,7 @@ te ofrece re-pegarla — así no se pierde nada aunque nunca subas Kuraka a git.
 | `mount-kuraka.sh` | Monta el Kuraka en un proyecto (rsync + gitignore) y **ofrece restaurar historia** del central |
 | `kuraka-backup.py` | Snapshot del estado Kuraka del proyecto → store central (`layer`+`state`+`cycles`, etiqueta rama) |
 | `kuraka-restore.py` | Restaura la historia del central → proyecto (pregunta; no pisa sin `--force`) |
-| `kuraka-export.py` | Genera `AGENTS.md` (+ `.cursor/rules`) para Codex/Cursor/Antigravity (`kuraka mount --target …`) |
+| `kuraka-export.py` | Genera `AGENTS.md` + comandos «/» nativos (`.cursor/commands`, `.agent/workflows`, `.codex/prompts`) para Codex/Cursor/Antigravity (`kuraka mount --target …`) |
 | `kuraka-archive.py` | Archiva solo los diagnósticos de ciclo (wrapper cycles-only de backup) |
 | `kuraka-discover.py` | Descubre proyectos montados en disco y reconcilia el registro |
 | `validate-kuraka.sh` | Valida frontmatter de agentes/skills + refs huérfanas |
@@ -342,13 +346,21 @@ vault desde `$KURAKA_VAULT` (con respaldo) y detectan la raíz del proyecto
 buscando `.claude/` hacia arriba, así funcionan en cualquier máquina y desde
 cualquier subdirectorio.
 
+El mount imprime este catálogo (con la guía de inicio) al terminar, así que no
+hace falta recordarlos.
+
 | Comando | Para qué |
 |---|---|
 | `/kuraka-wizard` | **Asistente de arranque.** Detecta el estado (montado, config, código, greenfield/brownfield) y ejecuta o encamina el siguiente paso correcto. Re-ejecutable: cada corrida avanza una etapa y para limpio en los puntos de reinicio. |
 | `/amauta` | **Mapea un proyecto existente** (brownfield) en un paso: corre `kuraka-inspect` si falta y luego invoca al agente `amauta` para generar `kuraka.config.yaml` + `.claude/project/` extrayendo convenciones del código real. |
+| `/inti` | **Discovery greenfield.** Entrevista estructurada para un proyecto que solo existe como idea; produce `docs/discovery/vision.md` + `requirements.md`. Antesala de `/arki`. |
+| `/arki` | **Arquitectura greenfield.** Toma el discovery de `/inti` y genera stack (3 opciones) + `kuraka.config.yaml` + `docs/arquitectura/` + esqueleto del layer y del árbol fuente. |
 | `/kuraka-update` | **Actualiza el framework montado** en este proyecto desde el vault (nuevos agentes/skills/commands/templates). No toca `kuraka.config.yaml`, `.claude/project/` ni `docs/`. |
-| `/kuraka-backup` | **Acomoda el proyecto al store central**: snapshotea su estado Kuraka completo (`layer`+`state`+`cycles`) a `projects/<slug>/` del vault. Correr tras `/kuraka-update`; Phase 7 lo corre solo en cada cierre. |
-| `/kuraka` | Orquesta un ciclo de desarrollo para un requerimiento dado. |
+| `/kuraka-backup` | **Acomoda el proyecto al store central**: snapshotea su estado Kuraka completo (`layer`+`state`+`cycles`+`overrides`) a `projects/<slug>/` del vault. Correr tras `/kuraka-update`; Phase 7 lo corre solo en cada cierre. |
+| `/kuraka` | Orquesta un ciclo de desarrollo completo para un requerimiento dado. |
+
+Estos mismos comandos se exportan a **Codex / Cursor / Antigravity** (ver más
+abajo), donde se invocan igual con `/` (en Codex, `/prompts:<nombre>`).
 
 > **Importante**: tras `/kuraka-update` (o cualquier mount) hay que reiniciar
 > Claude Code (`/exit` + sesión nueva) — agentes, skills y commands se
@@ -432,24 +444,37 @@ entornos, `mount` genera la versión **portable** del workflow vía `AGENTS.md` 
 estándar que leen Codex, Cursor, Antigravity, Gemini CLI…):
 
 ```bash
-kuraka mount --target codex        # genera AGENTS.md en la raíz del proyecto
-kuraka mount --target cursor       # AGENTS.md + .cursor/rules/kuraka.mdc
-kuraka mount --target antigravity  # AGENTS.md (verificar reglas propias del IDE)
+kuraka mount --target codex        # AGENTS.md + comandos «/» en .codex/prompts/ (staging)
+kuraka mount --target cursor       # AGENTS.md + .cursor/rules/kuraka.mdc + .cursor/commands/
+kuraka mount --target antigravity  # AGENTS.md + .agent/workflows/ (comandos «/»)
 kuraka mount                        # (default) Claude Code → .claude/ completo
 ```
+
+Además del `AGENTS.md`, cada target recibe los **comandos «/» nativos** del vault,
+convertidos al mecanismo de cada herramienta:
+
+| Tool | Comandos en | Se invocan con | Nota |
+|---|---|---|---|
+| Cursor | `.cursor/commands/*.md` | `/nombre` | por-repo, listo tras montar |
+| Antigravity | `.agent/workflows/*.md` | `/nombre` | por-repo; límite 12k chars/archivo |
+| Codex | `.codex/prompts/*.md` (staging) | `/prompts:nombre` | Codex los lee de tu **home**: `cp .codex/prompts/*.md ~/.codex/prompts/` |
+
+Se exportan todos menos los específicos de sie_v2 (`clean-cases`, `lint`,
+`run-tests`) y el `sync-from-vault` (solo Claude). El mount imprime al final el
+**catálogo de comandos** disponibles y la **guía de inicio** de tu entorno.
 
 Qué porta y qué no:
 - **Porta** (como guía): la disciplina de 8 fases con gates, los no-negociables
   (observar contratos, schema freeze, "green = lint+typecheck+test", green ≠
-  working), las convenciones del stack y cada agente convertido en un **rol** que
-  el agente único adopta por fase.
+  working), las convenciones del stack, cada agente convertido en un **rol** que
+  el agente único adopta por fase, y los comandos «/».
 - **No porta**: el *fan-out automático* de subagentes (es propio del tool `Task`
   de Claude Code). En esos entornos los roles se invocan manualmente.
 - **RTK** sí funciona en todos (Cursor, Codex, Gemini CLI…): corré su `rtk init`
   y el ahorro de tokens aplica igual.
 
-El `AGENTS.md` se regenera con re-correr el comando; toma el stack/convenciones de
-`kuraka.config.yaml` y los roles de los agentes del vault.
+Todo se regenera con re-correr el comando; toma el stack/convenciones de
+`kuraka.config.yaml` y los roles/comandos del vault.
 
 ---
 

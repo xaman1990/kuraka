@@ -45,8 +45,10 @@ DEFAULT_VERSION = "0.3.4"  # stamped into the registry note; override with --ver
 
 # Recommended companion components. Kuraka works without them, but several agents
 # rely on or strongly benefit from them. Keep in sync with RECOMMENDED-COMPONENTS.md.
-# detect: a CLI name resolvable via shutil.which, or None when it's a Claude Code
-# skill/MCP plugin (not detectable from here — we just print the recommendation).
+# Component detection, in order of precedence per entry:
+#   detect: a CLI name resolvable via shutil.which  (e.g. RTK)
+#   mcp:    a server key expected under mcpServers in ~/.claude.json / project .mcp.json
+#   (neither): a Claude Code skill — not detectable from here, print recommendation.
 RECOMMENDED_COMPONENTS = [
     {
         "name": "RTK (rtk-ai/rtk)", "priority": "strong", "detect": "rtk",
@@ -61,10 +63,16 @@ RECOMMENDED_COMPONENTS = [
         "install": "Claude Code plugin marketplace → add the ui-ux-pro-max skill.",
     },
     {
-        "name": "Playwright MCP", "priority": "recommended", "detect": None,
+        "name": "Playwright MCP", "priority": "recommended", "detect": None, "mcp": "playwright",
         "used_by": "e2e-tester (Phase 6.5), checkmarx-remediation",
         "why": "Browser end-to-end tests + live capture (Checkmarx login).",
-        "install": "Configure the Playwright MCP server in Claude Code settings.",
+        "install": "claude mcp add playwright  (o configurá el servidor Playwright MCP en Claude Code).",
+    },
+    {
+        "name": "magic / 21st MCP", "priority": "optional", "detect": None, "mcp": "magic",
+        "used_by": "frontend-developer (scaffolding)",
+        "why": "UI component generation/refinement.",
+        "install": "Configurá el servidor magic / 21st MCP en Claude Code.",
     },
     {
         "name": "impeccable (skill)", "priority": "optional", "detect": None,
@@ -73,10 +81,10 @@ RECOMMENDED_COMPONENTS = [
         "install": "Claude Code plugin marketplace → add the impeccable skill.",
     },
     {
-        "name": "Jira / ticket MCP", "priority": "optional", "detect": None,
+        "name": "Jira / ticket MCP", "priority": "optional", "detect": None, "mcp": "jira",
         "used_by": "po-analyst (Phase 1)",
         "why": "Fetch the real ticket instead of pasting the description.",
-        "install": "Configure your issue-tracker MCP server in Claude Code settings.",
+        "install": "Configurá tu MCP de issue-tracker (Jira/Linear/…) en Claude Code.",
     },
 ]
 
@@ -345,32 +353,64 @@ def upsert_registry(vault: Path, name: str, target: Path, insp: dict,
     print(f"   + projects/{name}/registry.md (registrado en el vault)")
 
 
-def recommend_components(vault: Path) -> None:
-    """Print recommended companion components and detect which CLIs are present.
+def _installed_mcp_servers(target: Path | None = None) -> set[str]:
+    """Server keys configured under mcpServers, merged from the global
+    ~/.claude.json and (if given) the project-local .mcp.json. Empty on any error."""
+    servers: set[str] = set()
+    sources = [Path(os.path.expanduser("~/.claude.json"))]
+    if target is not None:
+        sources.append(target / ".mcp.json")
+    for src in sources:
+        try:
+            data = json.loads(src.read_text(encoding="utf-8"))
+            servers |= set(data.get("mcpServers", {}).keys())
+        except (OSError, ValueError):
+            continue
+    return servers
+
+
+def recommend_components(vault: Path, target: Path | None = None) -> None:
+    """Print recommended companion components and detect which are present —
+    CLIs via `which`, MCP servers via the mcpServers config.
 
     Never installs anything — external tools are an explicit user decision.
     """
     icon = {"strong": "🔴", "recommended": "🟡", "optional": "⚪"}
+    installed_mcp = _installed_mcp_servers(target)
     print("🧩 Componentes recomendados (opcional — Kuraka funciona sin ellos):")
     print("")
     missing_strong = []
+    missing_mcp = []
     for c in RECOMMENDED_COMPONENTS:
         mark = icon.get(c["priority"], "•")
-        if c["detect"]:
+        if c.get("detect"):
             present = shutil.which(c["detect"]) is not None
             status = "✓ instalado" if present else "— falta"
             if not present and c["priority"] == "strong":
                 missing_strong.append(c)
+        elif c.get("mcp"):
+            present = c["mcp"] in installed_mcp
+            status = "✓ instalado (MCP)" if present else "— falta (MCP no configurado)"
+            if not present:
+                missing_mcp.append(c)
         else:
-            status = "(skill/MCP — verificá en Claude Code)"
+            status = "(skill — verificá en Claude Code)"
         print(f"   {mark} {c['name']:<22} {status}")
         print(f"      usa: {c['used_by']}")
         print(f"      {c['why']}")
         print(f"      instalar: {c['install']}")
         print("")
+    if installed_mcp:
+        print(f"   MCP configurados detectados: {', '.join(sorted(installed_mcp))}")
+        print("")
     if missing_strong:
         print("   ⚠️  Falta un componente de alto impacto:")
         for c in missing_strong:
+            print(f"      → {c['name']}: {c['install']}")
+        print("")
+    if missing_mcp:
+        print("   ℹ️  MCP recomendados no configurados:")
+        for c in missing_mcp:
             print(f"      → {c['name']}: {c['install']}")
         print("")
     print(f"   Detalle completo: {vault}/RECOMMENDED-COMPONENTS.md")
@@ -394,6 +434,8 @@ def main() -> int:
     ap.add_argument("--create", action="store_true", help="create target dir if missing")
     ap.add_argument("--no-components", action="store_true",
                     help="skip the recommended-components recommendation step")
+    ap.add_argument("--recommend-only", action="store_true",
+                    help="only print the recommended-components + MCP detection, then exit (used by mount)")
     args = ap.parse_args()
 
     # Line-buffer so our prints interleave correctly with subprocess output even
@@ -407,6 +449,14 @@ def main() -> int:
     if not vault.is_dir():
         err(f"❌ vault no encontrado: {vault}")
         return 1
+
+    # --recommend-only: pure detection (called by mount). Target is optional and
+    # only used to also read a project-local .mcp.json.
+    if args.recommend_only:
+        rec_raw = args.target_opt or args.target
+        rec_target = Path(rec_raw).expanduser().resolve() if rec_raw else None
+        recommend_components(vault, rec_target if (rec_target and rec_target.is_dir()) else None)
+        return 0
 
     target_raw = args.target_opt or args.target
     if not target_raw and not args.yes:
@@ -468,7 +518,7 @@ def main() -> int:
     # 6. recommended components (skip for register-only / --no-components)
     if not args.register_only and not args.no_components:
         print("")
-        recommend_components(vault)
+        recommend_components(vault, target)
 
     # final
     print("")

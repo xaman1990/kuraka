@@ -68,6 +68,7 @@ def main() -> int:
     ap.add_argument("--vault", default=os.environ.get("KURAKA_VAULT", DEFAULT_VAULT))
     ap.add_argument("--docs-root", default="docs/process", help="project-relative docs/process root")
     ap.add_argument("--cycles-only", action="store_true", help="only archive RETROs+telemetry (skip layer/state)")
+    ap.add_argument("--overrides-only", action="store_true", help="only snapshot agent/skill/command overrides")
     ap.add_argument("--force", action="store_true", help="re-copy cycles already present")
     args = ap.parse_args()
 
@@ -98,6 +99,15 @@ def main() -> int:
     print(f"   destino:  {kc.project_dir(vault, slug)}/")
     print("")
 
+    # --overrides-only: lightweight pre-flight (called by mount before the vault
+    # rsync clobbers any local agent tuning). Snapshot overrides and stop.
+    if args.overrides_only:
+        n_ov = kc.snapshot_overrides(project, vault, slug)
+        print(f"   overrides/ ← .claude/{{agents,skills,commands}}   ({n_ov} archivo(s) divergente(s))")
+        print("")
+        print(f"✅ overrides de {slug} respaldados.")
+        return 0
+
     if not args.cycles_only:
         # layer = .claude/project specialization
         layer_src = project / ".claude" / "project"
@@ -113,6 +123,10 @@ def main() -> int:
     added = kc.update_index(vault, rows, slug, args.force)
     print(f"   cycles/ ← {n_arch} ciclo(s) nuevo(s) "
           f"({len(rows) - n_arch} ya estaban), {added} fila(s) en INDEX.md")
+
+    # overrides = project-specific agent/skill/command tunings (diverge from vault)
+    n_ov = kc.snapshot_overrides(project, vault, slug)
+    print(f"   overrides/ ← .claude/{{agents,skills,commands}}   ({n_ov} archivo(s) divergente(s))")
 
     update_backup_sidecar(vault, slug, branch, today)
     print("")

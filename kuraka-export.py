@@ -25,9 +25,70 @@ import kuraka_common as kc
 DEFAULT_VAULT = "/Users/xmn/Documents/Agentes/AgentesTrabajos/kuraka"
 TARGETS = ("codex", "cursor", "antigravity")
 
+# Commands that are sie_v2-project-specific (hardcode `cd sie_v2`) or Claude-only —
+# never exported to other tools, and hidden from the "how to start" guidance.
+EXPORT_SKIP = {"clean-cases", "lint", "run-tests", "sync-from-vault"}
+
+# Where each tool reads its slash-commands from, and how it invokes them.
+TARGET_CMD_DIR = {
+    "cursor": (".cursor", "commands"),
+    "antigravity": (".agent", "workflows"),
+    "codex": (".codex", "prompts"),       # staged; user copies to ~/.codex/prompts
+}
+ANTIGRAVITY_MAX = 12000  # per-workflow character limit
+
+# Curated short labels + arg hints for the post-mount catalog (single source of
+# truth for how commands are advertised). Unknown commands fall back to their
+# frontmatter description (truncated).
+CMD_ORDER = [
+    "kuraka", "kuraka-wizard", "amauta", "inti", "arki",
+    "kuraka-backup", "kuraka-update", "checkmarx-remediation", "sync-from-vault",
+]
+CMD_LABEL = {
+    "kuraka": ("<requerimiento>", "Orquestador: ciclo multi-fase completo para un requerimiento"),
+    "kuraka-wizard": ("", "Onboarding guiado: detecta el estado y corre el siguiente paso"),
+    "amauta": ("", "Brownfield: extrae convenciones del código real → config + layer"),
+    "inti": ("[descripción]", "Greenfield: entrevista de discovery para un proyecto sin código"),
+    "arki": ("", "Greenfield: arquitectura inicial desde el discovery de inti"),
+    "kuraka-backup": ("", "Respalda el estado Kuraka del proyecto al vault central"),
+    "kuraka-update": ("", "Actualiza el framework montado desde el vault"),
+    "checkmarx-remediation": ("", "Remediación Checkmarx: tickets SAST/SCA/API → informe + checklist"),
+    "sync-from-vault": ("", "(solo Claude) migra agents/skills/commands del vault al proyecto"),
+}
+
 
 def err(m: str) -> None:
     print(m, file=sys.stderr)
+
+
+def parse_frontmatter(text: str) -> tuple[dict, str]:
+    """Split a `---`-delimited YAML frontmatter block from the body. Returns
+    ({key: value}, body). Only flat `key: value` pairs are read (enough here)."""
+    fm: dict = {}
+    if text.startswith("---"):
+        end = text.find("\n---", 3)
+        if end != -1:
+            block = text[3:end]
+            body = text[end + 4:].lstrip("\n")
+            for line in block.splitlines():
+                m = re.match(r'^\s*([A-Za-z0-9_-]+):\s*"?(.*?)"?\s*$', line)
+                if m:
+                    fm[m.group(1)] = m.group(2)
+            return fm, body
+    return fm, text
+
+
+def command_desc(path: Path) -> str:
+    """Description of a command: frontmatter `description`, else first non-empty
+    body line (trimmed)."""
+    text = path.read_text(encoding="utf-8", errors="ignore")
+    fm, body = parse_frontmatter(text)
+    if fm.get("description"):
+        return fm["description"].strip()
+    for line in body.splitlines():
+        if line.strip():
+            return line.strip().lstrip("#").strip()
+    return ""
 
 
 def read_agents(vault: Path) -> list[tuple[str, str]]:
@@ -183,14 +244,157 @@ Key non-negotiables:
 """
 
 
+def _preamble(target: str) -> str:
+    return (
+        f"> **Kuraka — entorno {target}.** Este entorno no lanza subagentes aislados\n"
+        f"> como Claude Code. Cuando un paso pida \"invocar el subagente X\", **adoptá\n"
+        f"> vos ese rol** siguiendo `AGENTS.md` (raíz del repo) y el flujo de fases con\n"
+        f"> gates. Si existe `.claude/project/`, sus convenciones aplican igual.\n\n"
+    )
+
+
+def transform_command(name: str, text: str, target: str) -> str:
+    """Turn a vault command into a portable prompt for `target`. Adapts the arg
+    placeholder, prepends the role preamble, and special-cases kuraka-update."""
+    fm, body = parse_frontmatter(text)
+    desc = fm.get("description") or command_desc_from_body(body)
+    arg_hint = fm.get("argument-hint", "")
+
+    if name == "kuraka-update":
+        body = (
+            "# Actualizar Kuraka en este proyecto\n\n"
+            f"En {target}, refrescá el framework (AGENTS.md + comandos) re-corriendo\n"
+            f"el mount desde tu solución:\n\n"
+            "```bash\n"
+            f"kuraka mount --target {target}\n"
+            "```\n\n"
+            "Eso regenera AGENTS.md y los comandos de este entorno desde el vault.\n"
+        )
+
+    # argument placeholder: codex substitutes $ARGUMENTS natively; others don't.
+    if target != "codex":
+        body = body.replace("$ARGUMENTS", "(los argumentos que escribiste después del comando)")
+
+    body = _preamble(target) + body
+
+    if target == "cursor":
+        # Cursor commands are plain markdown (filename = command name).
+        return body
+    # codex + antigravity read a frontmatter block.
+    head = ["---", f'description: "{desc}"']
+    if target == "codex" and arg_hint:
+        head.append(f'argument-hint: "{arg_hint}"')
+    return "\n".join(head) + "\n---\n\n" + body
+
+
+def command_desc_from_body(body: str) -> str:
+    for line in body.splitlines():
+        if line.strip():
+            return line.strip().lstrip("#").strip()[:200]
+    return ""
+
+
+def export_commands(vault: Path, project: Path, target: str, quiet: bool = False) -> int:
+    """Render vault/commands/*.md as native slash-commands for `target`. Returns
+    the number exported."""
+    src_dir = vault / "commands"
+    if not src_dir.is_dir():
+        return 0
+    parent, sub = TARGET_CMD_DIR[target]
+    out_dir = project / parent / sub
+    out_dir.mkdir(parents=True, exist_ok=True)
+    n = 0
+    for f in sorted(src_dir.glob("*.md")):
+        name = f.stem
+        if name in EXPORT_SKIP:
+            continue
+        rendered = transform_command(name, f.read_text(encoding="utf-8", errors="ignore"), target)
+        if target == "antigravity" and len(rendered) > ANTIGRAVITY_MAX:
+            print(f"   ⚠️  {name}: {len(rendered)} chars > límite {ANTIGRAVITY_MAX} de Antigravity — truncado.")
+            rendered = rendered[:ANTIGRAVITY_MAX - 200] + "\n\n> …(truncado por el límite de Antigravity).\n"
+        (out_dir / f.name).write_text(rendered, encoding="utf-8")
+        n += 1
+    if not quiet:
+        print(f"   + {n} comandos → {parent}/{sub}/")
+    return n
+
+
+def print_catalog(commands_dir: Path, env: str, project: Path | None = None) -> None:
+    """Print the available `/` commands (curated labels) + a start guide for `env`.
+    Reusable: mount-kuraka.sh calls this with --catalog for the Claude flow."""
+    if not commands_dir.is_dir():
+        return
+    present = {p.stem for p in commands_dir.glob("*.md")}
+    ordered = [c for c in CMD_ORDER if c in present] + sorted(present - set(CMD_ORDER))
+    print("")
+    print('📚 COMANDOS DISPONIBLES (invocálos con "/"):')
+    print("")
+    for name in ordered:
+        arg, label = CMD_LABEL.get(name, ("", ""))
+        if not label:
+            desc = command_desc(commands_dir / f"{name}.md")
+            label = (desc[:86] + "…") if len(desc) > 87 else desc
+        invoke = f"/{name} {arg}".strip()
+        print(f"   {invoke:<26} {label}")
+    print("")
+    _print_start_guide(env, project)
+
+
+def _print_start_guide(env: str, project: Path | None) -> None:
+    proj = str(project) if project else "<proyecto>"
+    print("🚀 CÓMO EMPEZAR:")
+    print("")
+    if env == "claude":
+        print(f"   1. cd {proj}")
+        print("   2. Abrí Claude Code:  claude")
+        print("      (si ya estaba abierto: /exit y sesión nueva — los subagentes se")
+        print("       registran solo al iniciar sesión)")
+        print("   3. Primer uso:")
+        print("      • Proyecto con código, sin config →  /amauta   (brownfield)")
+        print("      • Proyecto nuevo (solo idea)       →  /inti  y luego  /arki  (greenfield)")
+        print("      • ¿No sabés por dónde empezar?     →  /kuraka-wizard   (te guía)")
+        print("      • Ya listo, a trabajar             →  /kuraka <requerimiento>")
+    elif env == "cursor":
+        print(f"   1. Abrí el proyecto en Cursor:  {proj}")
+        print("   2. En el chat, tipeá  /  → aparecen los comandos de .cursor/commands/")
+        print("   3. Empezá con  /kuraka-wizard  (o /amauta · /inti+/arki según el caso)")
+    elif env == "codex":
+        print("   1. Instalá los comandos (Codex los lee de tu home, no del repo):")
+        print("        mkdir -p ~/.codex/prompts && cp .codex/prompts/*.md ~/.codex/prompts/")
+        print(f"   2. Abrí Codex en el proyecto:  cd {proj} && codex")
+        print("   3. Tipeá  /  y elegí, p.ej.  /prompts:kuraka-wizard  (o /kuraka-wizard)")
+    elif env == "antigravity":
+        print(f"   1. Abrí el workspace en Antigravity:  {proj}")
+        print("   2. Invocá los workflows con  /nombre  (leídos de .agent/workflows/)")
+        print("   3. Empezá con  /kuraka-wizard")
+    print("")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="Export Kuraka as portable AGENTS.md for non-Claude tools.")
     ap.add_argument("project", nargs="?", help="target project root")
     ap.add_argument("--project", dest="project_opt", help="target project root")
-    ap.add_argument("--target", required=True, choices=TARGETS, help="codex | cursor | antigravity")
+    ap.add_argument("--target", choices=TARGETS, help="codex | cursor | antigravity")
     ap.add_argument("--vault", default=os.environ.get("KURAKA_VAULT", DEFAULT_VAULT))
     ap.add_argument("--name", help="slug override")
+    # standalone catalog mode (used by mount-kuraka.sh for the Claude flow)
+    ap.add_argument("--catalog", metavar="COMMANDS_DIR",
+                    help="only print the command catalog for COMMANDS_DIR and exit")
+    ap.add_argument("--env", default="claude",
+                    help="environment for the start guide (claude|cursor|codex|antigravity)")
     args = ap.parse_args()
+
+    # --catalog: print the catalog + start guide for a commands dir, then exit.
+    if args.catalog:
+        cdir = Path(args.catalog).expanduser()
+        proj_raw = args.project_opt or args.project
+        proj = Path(proj_raw).expanduser().resolve() if proj_raw else None
+        print_catalog(cdir, args.env, proj)
+        return 0
+
+    if not args.target:
+        err("❌ falta --target (codex | cursor | antigravity).")
+        return 1
 
     vault = Path(args.vault).expanduser().resolve()
     if not vault.is_dir():
@@ -224,8 +428,15 @@ def main() -> int:
         print("   ℹ️  Antigravity: se generó AGENTS.md. Verificá si tu versión también")
         print("      lee reglas de workspace propias; si es así, avisá para añadir ese target.")
 
+    # export the slash-commands as this tool's native commands
+    export_commands(vault, project, args.target)
+
     print("")
     print(f"✅ export {args.target} completo. (Claude Code sigue usando .claude/ vía 'kuraka mount'.)")
+
+    # catalog of available commands + how to start in this environment
+    parent, sub = TARGET_CMD_DIR[args.target]
+    print_catalog(project / parent / sub, args.target, project)
     return 0
 
 
