@@ -31,6 +31,11 @@ python3 kuraka-discover.py [--register] [--roots ~/Desarrollos,~/work]
 # Mount the vault into a consumer project (copies agents/skills/rules/artifacts into
 # .claude/ and updates .gitignore of the target). Always run in the target repo root.
 # (kuraka-init.py calls this for you; use directly only for a re-mount.)
+# The CANONICAL mount is kuraka-mount.py (pure Python, no rsync — runs on
+# macOS/Linux/Windows). mount-kuraka.sh is now a thin bash wrapper that execs it,
+# and kuraka-init.py::run_mount invokes it via sys.executable. On Windows the CLI
+# is kuraka.cmd → kuraka.py (mirror of the bash `kuraka`); installer is install.ps1.
+python3 kuraka-mount.py [target_dir]                  # cross-platform (Windows too)
 # On a TTY it shows a banner + a small menu (which categories to mount / status-only)
 # and a live MCP-component detection block; piped/agent runs mount everything silently.
 # It also (a) snapshots any local agent tuning BEFORE the rsync and (b) re-applies

@@ -123,6 +123,41 @@ kuraka inspect|discover|dashboard|validate|doctor
 > **Fallback manual** (sin `install.sh`): `export KURAKA_VAULT="$HOME/.kuraka"` en
 > `~/.zshrc` y usá los scripts directo (`bash $KURAKA_VAULT/mount-kuraka.sh <dir>`).
 
+### Windows (PowerShell)
+
+Kuraka corre **nativo en Windows** — sin WSL. El mount es Python puro (sin
+`rsync`/bash), así que solo necesitás **Python 3 y git** en el PATH.
+
+**Equipo nuevo — UN comando** (PowerShell):
+
+```powershell
+irm https://raw.githubusercontent.com/xaman1990/kuraka/main/install.ps1 | iex
+```
+
+**Ya clonaste el repo** — desde adentro del clon:
+
+```powershell
+# 1. (si clonaste sin submódulos)
+git submodule update --init --recursive
+# 2. instalar (setea KURAKA_VAULT + agrega el vault al PATH de usuario)
+powershell -ExecutionPolicy Bypass -File .\install.ps1
+# 3. abrí una terminal PowerShell NUEVA (para tomar PATH/variables)
+```
+
+Luego, desde cualquier solución:
+
+```powershell
+kuraka doctor                 # verifica vault, python, git, RTK
+cd C:\ruta\a\mi-proyecto
+kuraka mount                  # monta acá (menú de entorno + categorías)
+```
+
+> El CLI en Windows es `kuraka.cmd` → `kuraka.py` (mismo comportamiento que el
+> `kuraka` de Unix; ambos llaman a los mismos scripts Python). Si `kuraka` no se
+> reconoce, abrí una terminal nueva o verificá que el vault quedó en tu PATH de
+> usuario. Los entornos Codex/Cursor/Antigravity (`kuraka mount --target …`) ya
+> eran cross-platform.
+
 ---
 
 ## Flujo de uso completo (ciclo de vida)
@@ -205,10 +240,11 @@ te ofrece re-pegarla — así no se pierde nada aunque nunca subas Kuraka a git.
 
 | Script | Función |
 |---|---|
-| `install.sh` | **Setup de máquina (una vez)**: registra `KURAKA_VAULT` + pone el CLI `kuraka` en el PATH |
-| `kuraka` | **CLI único**: `mount`/`init`/`update`/`backup`/`restore`/`inspect`/`discover`/`dashboard`/`validate`/`doctor` |
+| `install.sh` / `install.ps1` | **Setup de máquina (una vez)**: registra `KURAKA_VAULT` + pone el CLI en el PATH (Unix / Windows) |
+| `kuraka` / `kuraka.py` (+ `kuraka.cmd`) | **CLI único** (bash Unix / Python cross-platform): `mount`/`init`/`update`/`backup`/`restore`/`inspect`/`discover`/`dashboard`/`validate`/`doctor` |
 | `kuraka-init.py` | **Instalador one-shot de proyecto**: inspect → config → skeleton → mount → registro + recomienda componentes |
-| `mount-kuraka.sh` | Monta el Kuraka en un proyecto (rsync + gitignore) y **ofrece restaurar historia** del central |
+| `kuraka-mount.py` | **Mount canónico cross-platform** (Python puro, sin rsync): copia categorías + overrides + gitignore + registro + catálogo/guía. Corre en macOS/Linux/Windows |
+| `mount-kuraka.sh` | Wrapper Unix delgado → `kuraka-mount.py` (mantiene el entrypoint `bash mount-kuraka.sh`) |
 | `kuraka-backup.py` | Snapshot del estado Kuraka del proyecto → store central (`layer`+`state`+`cycles`, etiqueta rama) |
 | `kuraka-restore.py` | Restaura la historia del central → proyecto (pregunta; no pisa sin `--force`) |
 | `kuraka-export.py` | Genera `AGENTS.md` + comandos «/» nativos (`.cursor/commands`, `.agent/workflows`, `.codex/prompts`) para Codex/Cursor/Antigravity (`kuraka mount --target …`) |

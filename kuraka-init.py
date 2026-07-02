@@ -298,12 +298,14 @@ def write_project_skeleton(target: Path, already_populated: bool) -> None:
 
 
 def run_mount(vault: Path, target: Path) -> int:
-    script = vault / "mount-kuraka.sh"
+    # Canonical mount is the cross-platform kuraka-mount.py (invoked with the same
+    # interpreter, so it works on Windows where there may be no `python3`/bash).
+    script = vault / "kuraka-mount.py"
     if not script.exists():
-        err(f"❌ mount-kuraka.sh no encontrado en {vault}")
+        err(f"❌ kuraka-mount.py no encontrado en {vault}")
         return 1
     env = dict(os.environ, KURAKA_VAULT=str(vault))
-    proc = subprocess.run(["bash", str(script), str(target)], env=env)
+    proc = subprocess.run([sys.executable, str(script), str(target)], env=env)
     return proc.returncode
 
 
