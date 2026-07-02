@@ -45,15 +45,17 @@ find_project_root() {
 
 usage() {
   cat <<'EOF'
-kuraka — CLI del vault Kuraka. Corré desde cualquier carpeta (típicamente tu solución).
+🪢 kuraka — CLI del vault Kuraka. Corré desde cualquier carpeta (típicamente tu solución).
 
   kuraka mount [dir]       montar Kuraka en dir (default: carpeta actual) — Claude Code
+                           (interactivo: menú de categorías + detección de MCP + banner)
   kuraka mount --target codex|cursor|antigravity [dir]
-                           generar AGENTS.md (+ .cursor/rules) para otros entornos de IA
+                           generar AGENTS.md + comandos «/» nativos para otros entornos de IA
+                           (codex requiere un paso extra para instalar los comandos en ~/.codex)
   kuraka init  [dir]       instalación one-shot (inspect+config+skeleton+mount+registro)
   kuraka update            actualizar el framework en el proyecto sobre la carpeta actual
-  kuraka backup  [dir]     respaldar el estado Kuraka del proyecto al store central
-  kuraka restore [dir]     restaurar la historia del proyecto desde el store central
+  kuraka backup  [dir]     respaldar el estado Kuraka (layer+state+cycles+overrides) al store central
+  kuraka restore [dir]     restaurar la historia del proyecto (incl. overrides de agentes) desde el store
   kuraka inspect [dir]     detectar el stack
   kuraka discover [...]    descubrir proyectos montados + reconciliar el registro
   kuraka dashboard [dir]   dashboard de telemetría
@@ -67,11 +69,11 @@ sub="${1:-help}"; [ $# -gt 0 ] && shift || true
 
 case "$sub" in
   mount)
-    tgt="claude"; dir=""
+    tgt="claude"; dir=""; tgt_set=0
     while [ $# -gt 0 ]; do
       case "$1" in
-        --target)   tgt="${2:-}"; shift 2 ;;
-        --target=*) tgt="${1#*=}"; shift ;;
+        --target)   tgt="${2:-}"; tgt_set=1; shift 2 ;;
+        --target=*) tgt="${1#*=}"; tgt_set=1; shift ;;
         *)          dir="$1"; shift ;;
       esac
     done
@@ -79,6 +81,22 @@ case "$sub" in
     if [ "$target" = "$VAULT" ]; then
       echo "❌ no se monta Kuraka dentro del propio vault. Corré 'kuraka mount' desde tu solución." >&2
       exit 1
+    fi
+    # Interactive environment selector (only when no --target was given and on a TTY).
+    if [ -t 0 ] && [ "$tgt_set" = "0" ]; then
+      echo "🎯 ¿A qué entorno de IA querés montar Kuraka?"
+      echo "   (todos reciben agentes + comandos «/»; Claude usa subagentes nativos,"
+      echo "    los demás adoptan roles vía AGENTS.md)"
+      echo "   1) Claude Code (default)   2) Codex   3) Cursor   4) Antigravity"
+      printf "   > "
+      read -r _env || _env=""
+      case "$_env" in
+        2) tgt="codex" ;;
+        3) tgt="cursor" ;;
+        4) tgt="antigravity" ;;
+        *) tgt="claude" ;;
+      esac
+      echo ""
     fi
     case "$tgt" in
       claude)

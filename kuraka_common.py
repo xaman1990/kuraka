@@ -18,6 +18,7 @@ Central store layout (decided 2026-06-28 — single directory per project):
 
 from __future__ import annotations
 
+import hashlib
 import re
 import shutil
 import subprocess
@@ -101,13 +102,113 @@ def cycles_dir(vault: Path, slug: str) -> Path:
     return project_dir(vault, slug) / "cycles"
 
 
+def overrides_dir(vault: Path, slug: str) -> Path:
+    return project_dir(vault, slug) / "overrides"
+
+
 def has_history(vault: Path, slug: str) -> bool:
     """True if the central store holds restorable data for this project."""
     p = project_dir(vault, slug)
     if not p.is_dir():
         return False
     return any((p / sub).is_dir() and any((p / sub).iterdir())
-               for sub in ("layer", "state", "cycles"))
+               for sub in ("layer", "state", "cycles", "overrides"))
+
+
+# --- project-specific overrides (agent/skill/command tunings) -----------------
+# Consumer projects often tune a framework agent to their needs (e.g. edit
+# .claude/agents/backend-developer.md). Those dirs are gitignored AND overwritten
+# by the vault rsync on every mount, so the tuning is otherwise lost. We detect
+# files that diverge from the vault baseline, snapshot them centrally, and
+# re-apply them after each mount (the project override wins).
+
+OVERRIDE_CATEGORIES = ("agents", "skills", "commands")
+
+
+def _file_hash(p: Path) -> str:
+    return hashlib.sha256(p.read_bytes()).hexdigest()
+
+
+def detect_overrides(project: Path, vault: Path) -> list[Path]:
+    """Relative paths (as `<cat>/<rel>`) under .claude/<cat>/ whose content differs
+    from the vault baseline, or that don't exist in the vault at all (custom
+    files). These are the project-specific tunings worth preserving.
+
+    Excludes *.append.md (project-layer rule fragments — never framework files,
+    already excluded by the mount rsync). Vault and project both store backticked
+    cross-refs (no wikilink conversion in mount-kuraka.sh), so a byte comparison
+    is exact — no false positives from formatting differences.
+    """
+    out: list[Path] = []
+    for cat in OVERRIDE_CATEGORIES:
+        proj_cat = project / ".claude" / cat
+        vault_cat = vault / cat
+        if not proj_cat.is_dir():
+            continue
+        for p in sorted(proj_cat.rglob("*.md")):
+            if p.name.endswith(".append.md"):
+                continue
+            rel = p.relative_to(proj_cat)
+            base = vault_cat / rel
+            if not base.exists() or _file_hash(p) != _file_hash(base):
+                out.append(Path(cat) / rel)
+    return out
+
+
+def snapshot_overrides(project: Path, vault: Path, slug: str) -> int:
+    """Copy divergent agent/skill/command files into the central overrides store,
+    preserving <cat>/<rel>, and rewrite MANIFEST.md. If nothing diverges, clear the
+    store subdir so a reverted tuning doesn't linger and get re-applied later.
+    Returns the number of override files snapshotted."""
+    dst_root = overrides_dir(vault, slug)
+    rels = detect_overrides(project, vault)
+    if dst_root.exists():
+        shutil.rmtree(dst_root)          # start clean each snapshot
+    if not rels:
+        return 0
+    lines = [
+        "# Overrides — project-specific tunings snapshotted from .claude/",
+        "",
+        f"project: {slug}",
+        f"snapshot: {date.today().isoformat()}",
+        "",
+        "Re-applied on top of the vault copy after every mount (project wins).",
+        "",
+        "| Archivo | Hash |",
+        "|---|---|",
+    ]
+    for rel in rels:
+        src = project / ".claude" / rel
+        d = dst_root / rel
+        d.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, d)
+        lines.append(f"| `{rel}` | `{_file_hash(src)[:12]}` |")
+    (dst_root / "MANIFEST.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return len(rels)
+
+
+def restore_overrides(vault: Path, slug: str, project: Path) -> int:
+    """Re-apply snapshotted overrides on top of the freshly-mounted vault copy
+    (project override wins). Overwrites unconditionally — that's the point. Only
+    the known category subdirs are copied (MANIFEST.md stays central). Returns the
+    number of files re-applied."""
+    src_root = overrides_dir(vault, slug)
+    if not src_root.is_dir():
+        return 0
+    copied = 0
+    for cat in OVERRIDE_CATEGORIES:
+        src_cat = src_root / cat
+        if not src_cat.is_dir():
+            continue
+        for s in src_cat.rglob("*"):
+            if s.is_dir():
+                continue
+            rel = s.relative_to(src_cat)
+            d = project / ".claude" / cat / rel
+            d.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(s, d)
+            copied += 1
+    return copied
 
 
 # --- snapshot + cycle archiving (shared by kuraka-backup / kuraka-archive) ---

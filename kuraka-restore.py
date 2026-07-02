@@ -56,7 +56,7 @@ def restore_tree(src: Path, dst: Path, force: bool) -> tuple[int, int]:
 def summarize(vault: Path, slug: str) -> str:
     p = kc.project_dir(vault, slug)
     parts = []
-    for sub in ("layer", "state", "cycles"):
+    for sub in ("layer", "state", "cycles", "overrides"):
         d = p / sub
         n = sum(1 for _ in d.rglob("*") if _.is_file()) if d.is_dir() else 0
         parts.append(f"{sub}={n}")
@@ -78,6 +78,8 @@ def main() -> int:
     ap.add_argument("--docs-root", default="docs/process", help="project-relative docs/process root")
     ap.add_argument("--yes", "-y", action="store_true", help="restore without prompting")
     ap.add_argument("--no", action="store_true", help="never restore (report only)")
+    ap.add_argument("--overrides-only", action="store_true",
+                    help="only re-apply agent/skill/command overrides (always; no prompt) — used by mount")
     ap.add_argument("--check", action="store_true", help="only report whether history exists")
     ap.add_argument("--force", action="store_true", help="overwrite existing project files")
     args = ap.parse_args()
@@ -96,6 +98,16 @@ def main() -> int:
         return 1
 
     slug = kc.project_slug(project, args.name)
+
+    # --overrides-only: unconditional, silent-unless-applied re-apply of the
+    # project's own agent/skill/command tunings on top of the fresh vault copy.
+    # Called by mount on every run (TTY or not) — overrides must never be lost.
+    if args.overrides_only:
+        oc = kc.restore_overrides(vault, slug, project)
+        if oc:
+            print(f"   ✓ overrides re-aplicados: {oc} archivo(s) (.claude/{{agents,skills,commands}}, pisando la copia del vault)")
+        return 0
+
     if not kc.has_history(vault, slug):
         print(f"ℹ️  el central no tiene historia para «{slug}». Nada que restaurar.")
         return 0
@@ -109,7 +121,7 @@ def main() -> int:
     proceed = args.yes
     if not proceed and not args.no:
         try:
-            ans = input(f"   ¿Restaurar la historia de «{slug}» a {project}? [s/N]: ").strip().lower()
+            ans = input(f"   ¿Restaurar la historia guardada de «{slug}» y continuar el trabajo? [s/N]: ").strip().lower()
             proceed = ans in ("s", "si", "sí", "y", "yes")
         except EOFError:
             proceed = False
@@ -123,6 +135,12 @@ def main() -> int:
     print(f"   state → {args.docs_root}/  ({sc} copiados, {ss} ya existían)")
     if (ls or ss) and not args.force:
         print("   nota: los que ya existían NO se pisaron — usá --force para sobrescribir.")
+
+    # overrides ALWAYS win over the freshly-mounted vault copy (that's their point),
+    # so they overwrite regardless of --force.
+    oc = kc.restore_overrides(vault, slug, project)
+    if oc:
+        print(f"   overrides → .claude/{{agents,skills,commands}}   ({oc} re-aplicado(s), pisando la copia del vault)")
     print("")
     print(f"✅ restore de {slug} completo.")
     return 0

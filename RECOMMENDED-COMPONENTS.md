@@ -70,8 +70,15 @@ la consulta al implementar/revisar UI (ver `agents/frontend-developer.md` →
 
 ## Notas
 
-- Skills/MCP (ui-ux-pro-max, Playwright, magic, impeccable) se instalan vía el
-  marketplace de plugins / configuración de MCP de Claude Code, no por CLI; por
-  eso `kuraka-init.py` solo detecta RTK automáticamente y para el resto imprime
-  la recomendación.
-- Mantené esta tabla en sync con `kuraka-init.py` (`RECOMMENDED_COMPONENTS`).
+- Skills (ui-ux-pro-max, impeccable) se instalan vía el marketplace de plugins de
+  Claude Code y **no** son detectables desde el CLI — se imprime la recomendación.
+- **Los MCP sí se detectan.** `kuraka-init.py` / `kuraka mount` leen los servidores
+  configurados en `~/.claude.json` (y `.mcp.json` del proyecto, si existe) bajo
+  `mcpServers`, y marcan cada componente con `mcp` como `✓ instalado (MCP)` o
+  `— falta`. Hoy detecta: Playwright (`playwright`), magic/21st (`magic`),
+  Jira/ticket (`jira`). RTK se detecta por CLI (`which rtk`).
+- Ver la detección en vivo sin montar nada:
+  `python3 kuraka-init.py --recommend-only [dir]`. El `kuraka mount` interactivo
+  también la imprime (menú de categorías + estado de MCP).
+- Mantené esta tabla en sync con `kuraka-init.py` (`RECOMMENDED_COMPONENTS`): la
+  clave `detect` es un binario (`which`), `mcp` es una key de `mcpServers`.
