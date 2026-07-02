@@ -74,89 +74,113 @@ flowchart LR
 
 ---
 
-## Instalación rápida (one-shot, estilo `rtk init`)
+## Instalación — paso a paso por sistema operativo
 
-**Equipo nuevo — UN solo comando** (clona + instala el CLI):
+**Requisitos** (todos los SO): **Python 3** y **git** en el PATH. Kuraka no tiene
+dependencias `pip` — son scripts Python/shell puros. El mount es Python (sin
+`rsync`/bash), así que corre igual en macOS, Linux y **Windows nativo (sin WSL)**.
+
+Hay dos formas de instalar en cada SO: **(A)** una línea en un equipo nuevo (clona
+solo), o **(B)** desde un repo que ya descargaste/clonaste. Elegí una.
+
+---
+
+### 🍎 macOS · 🐧 Linux
+
+**A) Equipo nuevo — un comando** (clona a `~/.kuraka` + pone `kuraka` en el PATH):
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/xaman1990/kuraka/main/install.sh | bash
-#   (para elegir carpeta:  ... | bash -s -- ~/dev/kuraka )
+#   (carpeta a elección:  ... | bash -s -- ~/dev/kuraka )
 ```
 
-Eso clona el vault en `~/.kuraka`, setea `KURAKA_VAULT` y deja el comando
-`kuraka` en el PATH. Abrí una terminal nueva (o `source ~/.zshrc`) y listo.
-
-Luego, desde cualquier solución:
+**B) Ya lo descargaste/clonaste** — desde adentro del repo:
 
 ```bash
-# (recomendado) RTK — ahorra 70–90% de tokens, hook transparente
+cd /ruta/a/kuraka
+git submodule update --init --recursive     # si clonaste sin submódulos
+bash install.sh
+```
+
+**Después (ambos casos):**
+
+```bash
+# 1. abrí una terminal NUEVA   (o:  source ~/.zshrc)
+# 2. verificá
+kuraka doctor
+# 3. (recomendado) RTK — ahorra 70–90% de tokens
 brew install rtk && rtk init -g
-
-cd /ruta/a/mi-proyecto
-kuraka mount            # monta acá   (o:  kuraka mount /otra/ruta)
-#   ↳ si el central ya tiene historia de este proyecto, te ofrece restaurarla
-# reiniciá Claude Code (/exit + sesión nueva) para registrar los subagentes
 ```
 
-> Si preferís clonar a mano: `git clone --recurse-submodules
-> https://github.com/xaman1990/kuraka.git ~/.kuraka && ~/.kuraka/install.sh`
-> (el mismo `install.sh` detecta el clon y no vuelve a descargar).
+---
 
-Esto reemplaza el flujo viejo (entrar al vault, abrir Claude ahí, indicar dónde
-montar). Ahora `kuraka mount` se llama **desde la solución** (o con la ruta como
-argumento). `kuraka doctor` verifica el setup.
+### 🪟 Windows (PowerShell)
 
-```text
-kuraka mount [dir]     montar/actualizar aquí (o en dir)
-kuraka init  [dir]     instalación completa (inspect+config+skeleton+mount+registro)
-kuraka update          actualizar el framework del proyecto actual
-kuraka backup|restore  respaldar / restaurar historia contra el store central
-kuraka inspect|discover|dashboard|validate|doctor
-```
-
-> Para una instalación guiada del proyecto (config + capa `.claude/project` desde
-> el código real), `kuraka init` corre inspect + config + skeleton + mount +
-> registro y al final **lista los componentes recomendados y detecta cuáles ya
-> tenés** (RTK se detecta solo; skills/MCP como ui-ux-pro-max se instalan desde el
-> marketplace de plugins de Claude Code).
-
-> **Fallback manual** (sin `install.sh`): `export KURAKA_VAULT="$HOME/.kuraka"` en
-> `~/.zshrc` y usá los scripts directo (`bash $KURAKA_VAULT/mount-kuraka.sh <dir>`).
-
-### Windows (PowerShell)
-
-Kuraka corre **nativo en Windows** — sin WSL. El mount es Python puro (sin
-`rsync`/bash), así que solo necesitás **Python 3 y git** en el PATH.
-
-**Equipo nuevo — UN comando** (PowerShell):
+**A) Equipo nuevo — un comando** (clona a `%USERPROFILE%\.kuraka`):
 
 ```powershell
 irm https://raw.githubusercontent.com/xaman1990/kuraka/main/install.ps1 | iex
 ```
 
-**Ya clonaste el repo** — desde adentro del clon:
+**B) Ya lo descargaste (ZIP o clon)** — desde adentro de la carpeta:
 
 ```powershell
-# 1. (si clonaste sin submódulos)
-git submodule update --init --recursive
-# 2. instalar (setea KURAKA_VAULT + agrega el vault al PATH de usuario)
+cd C:\ruta\a\kuraka
+git submodule update --init --recursive     # solo si es un clon git (opcional)
 powershell -ExecutionPolicy Bypass -File .\install.ps1
-# 3. abrí una terminal PowerShell NUEVA (para tomar PATH/variables)
 ```
 
-Luego, desde cualquier solución:
+**Después (ambos casos):**
 
 ```powershell
-kuraka doctor                 # verifica vault, python, git, RTK
-cd C:\ruta\a\mi-proyecto
-kuraka mount                  # monta acá (menú de entorno + categorías)
+# 1. CERRÁ y abrí una terminal PowerShell NUEVA  (para tomar PATH + variables)
+# 2. verificá
+kuraka doctor
 ```
 
-> El CLI en Windows es `kuraka.cmd` → `kuraka.py` (mismo comportamiento que el
-> `kuraka` de Unix; ambos llaman a los mismos scripts Python). Si `kuraka` no se
-> reconoce, abrí una terminal nueva o verificá que el vault quedó en tu PATH de
-> usuario. Los entornos Codex/Cursor/Antigravity (`kuraka mount --target …`) ya
-> eran cross-platform.
+> **Notas Windows.** El instalador setea `KURAKA_VAULT` (variable de usuario) y
+> agrega el vault al PATH. El CLI es `kuraka.cmd` → `kuraka.py`. `git` es opcional
+> si instalás desde una copia ya descargada (el mount es Python puro; sin git solo
+> se pierde el etiquetado por rama). El banner a color se ve en **Windows
+> Terminal**; en la consola vieja cae a ASCII (esperado).
+
+---
+
+### Montar Kuraka en tu proyecto (igual en los 3 SO)
+
+Una vez instalado el CLI, desde **la carpeta de tu solución**:
+
+```bash
+cd /ruta/a/tu-proyecto          # Windows:  cd C:\ruta\a\tu-proyecto
+kuraka mount                    # monta acá (o:  kuraka mount /otra/ruta)
+```
+
+`kuraka mount` (interactivo) te deja elegir el **entorno** (Claude Code / Codex /
+Cursor / Antigravity) y **qué categorías** montar, detecta los **MCP** instalados,
+avisa si ya hay **historia guardada** en el vault (y ofrece restaurarla), y al
+terminar imprime el **catálogo de comandos `/`** con la **guía de inicio**.
+
+Para Claude Code: **reiniciá la sesión** (`/exit` + `claude`) después de montar —
+los subagentes se registran solo al inicio de sesión.
+
+**Comandos del CLI** (mismos en todos los SO):
+
+```text
+kuraka mount [dir]           montar/actualizar aquí (o en dir) — Claude Code
+kuraka mount --target codex|cursor|antigravity [dir]   otros entornos de IA
+kuraka init  [dir]           instalación completa (inspect+config+skeleton+mount+registro)
+kuraka update                actualizar el framework del proyecto actual
+kuraka backup | restore      respaldar / restaurar historia contra el store central
+kuraka inspect | discover | dashboard | validate | doctor
+```
+
+> `kuraka init` hace la instalación guiada del proyecto (config + capa
+> `.claude/project` desde el código real) y al final **lista los componentes
+> recomendados y detecta cuáles ya tenés**.
+
+> **Fallback manual** (sin instalador): seteá `KURAKA_VAULT` a la ruta del vault y
+> corré los scripts directo — `python3 $KURAKA_VAULT/kuraka-mount.py <dir>`
+> (cross-platform) o `bash $KURAKA_VAULT/mount-kuraka.sh <dir>` (Unix).
 
 ---
 
